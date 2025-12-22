@@ -43,6 +43,33 @@ next-env.d.ts
 # cursor
 .cursor/
 
-# wasm
+# Rust/WASM build artifacts
 wasm/pkg/
 wasm/target/
+**/target/
+# Cargo.lock is kept for reproducible builds (workspace root)
+
+# Rust backup and temporary files
+*.rs.bk
+*.orig
+*.pdb
+*.dSYM/
+
+# Rust IDE and metadata files
+**/.rustc_info.json
+**/.cargo/
+
+# Rust test and profiling artifacts
+*.test
+*.profdata
+
+# Rust documentation (generated)
+**/target/doc/
+
+# Rust incremental compilation artifacts
+**/target/debug/
+**/target/release/
+**/target/.rustc_info.json
+
+# Rust build scripts output
+**/build.rs.out
