@@ -59,6 +59,7 @@ function SimulationContent() {
     player2WinRate: 0,
     averageTurnCount: 0,
     averageScoreDiff: 0,
+    averageRuntimePerGame: 0,
   });
   const [results, setResults] = useState<SimulationResult[]>([]);
   const [selectedGame, setSelectedGame] = useState<SimulationResult | null>(null);
@@ -78,6 +79,7 @@ function SimulationContent() {
       player2WinRate: 0,
       averageTurnCount: 0,
       averageScoreDiff: 0,
+      averageRuntimePerGame: 0,
     });
 
     const controller = new SimulationController();

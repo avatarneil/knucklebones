@@ -124,6 +124,16 @@ export function ResultsGraph({
               : "0"}
           </div>
         </div>
+        <div className="col-span-2">
+          <div className="text-xs text-muted-foreground">Avg Runtime per Game</div>
+          <div className="text-lg font-semibold">
+            {stats.averageRuntimePerGame > 0
+              ? stats.averageRuntimePerGame < 1000
+                ? `${stats.averageRuntimePerGame.toFixed(1)}ms`
+                : `${(stats.averageRuntimePerGame / 1000).toFixed(2)}s`
+              : "-"}
+          </div>
+        </div>
       </div>
     </div>
   );

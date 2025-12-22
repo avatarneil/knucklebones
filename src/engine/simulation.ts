@@ -26,6 +26,7 @@ export interface SimulationResult {
   player1Strategy: DifficultyLevel;
   player2Strategy: DifficultyLevel;
   completedAt: number;
+  runtime: number; // Runtime in milliseconds
 }
 
 export interface SimulationStats {
@@ -38,6 +39,7 @@ export interface SimulationStats {
   player2WinRate: number;
   averageTurnCount: number;
   averageScoreDiff: number;
+  averageRuntimePerGame: number; // Average runtime per game in milliseconds
 }
 
 export interface SimulationConfig {
@@ -57,6 +59,7 @@ async function simulateSingleGame(
   player1Strategy: DifficultyLevel,
   player2Strategy: DifficultyLevel,
 ): Promise<SimulationResult> {
+  const startTime = performance.now();
   let state = createInitialState();
   const moves: SimulationResult["moves"] = [];
   let turnCount = 0;
@@ -113,6 +116,9 @@ async function simulateSingleGame(
     player2: calculateGridScore(state.grids.player2).total,
   };
 
+  const endTime = performance.now();
+  const runtime = endTime - startTime;
+
   return {
     id,
     winner: state.winner || "draw",
@@ -123,6 +129,7 @@ async function simulateSingleGame(
     player1Strategy,
     player2Strategy,
     completedAt: Date.now(),
+    runtime,
   };
 }
 
@@ -155,6 +162,11 @@ function calculateStats(
         ) / completedGames
       : 0;
 
+  const averageRuntimePerGame =
+    completedGames > 0
+      ? results.reduce((sum, r) => sum + r.runtime, 0) / completedGames
+      : 0;
+
   return {
     totalGames,
     completedGames,
@@ -165,6 +177,7 @@ function calculateStats(
     player2WinRate,
     averageTurnCount,
     averageScoreDiff,
+    averageRuntimePerGame,
   };
 }
 
