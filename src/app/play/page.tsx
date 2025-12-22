@@ -15,7 +15,7 @@ import {
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { GameBoard } from "@/components/game";
+import { GameBoard, KeyboardShortcuts } from "@/components/game";
 import { InstallPrompt } from "@/components/pwa";
 import { WinProbability } from "@/components/training";
 import { Button } from "@/components/ui/button";
@@ -37,9 +37,12 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { createInitialState, DIFFICULTY_CONFIGS } from "@/engine";
+import { isColumnFull } from "@/engine/scorer";
 import type { ColumnIndex, DifficultyLevel, GameState } from "@/engine/types";
+import { ALL_COLUMNS } from "@/engine/types";
 import { useGame } from "@/hooks/useGame";
 import { useGameHistory } from "@/hooks/useGameHistory";
+import { useKeyboardControls } from "@/hooks/useKeyboardControls";
 import { gameStorage } from "@/lib/game-storage";
 
 function PlayContent() {
@@ -236,6 +239,27 @@ function PlayContent() {
     initialState: gameInitialState,
     onGameEnd: handleGameEnd,
     onStateChange: handleStateChange,
+  });
+
+  // Calculate legal columns and game state for keyboard controls
+  const isPlayer1Turn = game.state.currentPlayer === "player1";
+  const isRollingPhase = game.state.phase === "rolling";
+  const isPlacingPhase = game.state.phase === "placing";
+  const isEnded = game.state.phase === "ended";
+  const currentGrid = game.state.grids[game.state.currentPlayer];
+  const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(currentGrid[i]));
+  const canRoll = isRollingPhase && isPlayer1Turn && !isEnded;
+  const canPlace = isPlacingPhase && isPlayer1Turn && !isEnded;
+
+  // Set up keyboard controls
+  useKeyboardControls({
+    gameState: game.state,
+    canRoll,
+    canPlace,
+    legalColumns,
+    onRoll: game.roll,
+    onPlaceDie: game.placeDie,
+    enabled: isReady,
   });
 
   const handleNewGame = useCallback(async () => {
@@ -449,6 +473,9 @@ function PlayContent() {
           moveAnalysis={game.moveAnalysis ?? undefined}
           showProbabilities={game.isTrainingMode}
         />
+
+        {/* Keyboard Shortcuts Widget */}
+        <KeyboardShortcuts />
 
         {/* Training Mode Panel - shown below on mobile, would need different layout for desktop */}
         {game.isTrainingMode &&
