@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Knucklebones Trainer",
+  title: "KnuckleTrainer - Master Knucklebones",
   description:
-    "Master the dice game from Cult of the Lamb with AI opponents and training mode",
+    "Master Knucklebones, the dice game from Cult of the Lamb. Train against AI opponents with 5 difficulty levels and win probability analysis.",
 };
 
 export default function RootLayout({

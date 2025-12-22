@@ -1,4 +1,12 @@
+# KnuckleTrainer
+
+Master Knucklebones - the dice game from Cult of the Lamb. Train against AI opponents with 5 difficulty levels and win probability analysis.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 ## Getting Started
 

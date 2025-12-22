@@ -34,11 +34,11 @@ export default function Home() {
         <div className="flex items-center justify-center gap-3 mb-4">
           <Dices className="w-12 h-12 text-accent" />
           <h1 className="text-5xl font-bold bg-gradient-to-r from-accent via-primary to-secondary bg-clip-text text-transparent">
-            Knucklebones
+            KnuckleTrainer
           </h1>
         </div>
         <p className="text-xl text-muted-foreground">
-          Master the dice game from Cult of the Lamb
+          Master Knucklebones - the dice game from Cult of the Lamb
         </p>
       </div>
 
@@ -172,7 +172,11 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="mt-12 text-center text-sm text-muted-foreground">
-        <p>Inspired by Cult of the Lamb by Massive Monster</p>
+        <p>
+          <span className="font-medium">KnuckleTrainer</span> - Master the game
+          of Knucklebones
+        </p>
+        <p className="mt-1">Inspired by Cult of the Lamb by Massive Monster</p>
       </footer>
     </main>
   );
