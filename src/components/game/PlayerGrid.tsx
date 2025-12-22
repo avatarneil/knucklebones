@@ -81,7 +81,7 @@ export function PlayerGrid({
       {/* Grid */}
       <div
         className={cn(
-          "flex gap-[clamp(0.25rem,1.5vmin,1rem)] p-[clamp(0.375rem,2vmin,1rem)] rounded-lg sm:rounded-xl bg-card/50 backdrop-blur border border-border/50",
+          "flex gap-[clamp(0.375rem,2vmin,1.25rem)] p-[clamp(0.5rem,2.5vmin,1.25rem)] rounded-lg sm:rounded-xl bg-card/50 backdrop-blur border border-border/50",
         )}
       >
         {ALL_COLUMNS.map((colIndex) => (

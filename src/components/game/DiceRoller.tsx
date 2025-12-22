@@ -66,8 +66,8 @@ export function DiceRoller({
             )}
           />
         ) : (
-          <div className="w-[clamp(3rem,10vmin,6rem)] h-[clamp(3rem,10vmin,6rem)] rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
-            <Dices className="w-[clamp(1.5rem,5vmin,3rem)] h-[clamp(1.5rem,5vmin,3rem)] text-muted-foreground/50" />
+          <div className="w-[clamp(3.5rem,12vmin,7rem)] h-[clamp(3.5rem,12vmin,7rem)] rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
+            <Dices className="w-[clamp(1.75rem,6vmin,3.5rem)] h-[clamp(1.75rem,6vmin,3.5rem)] text-muted-foreground/50" />
           </div>
         )}
       </div>
