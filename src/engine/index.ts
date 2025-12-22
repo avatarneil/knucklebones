@@ -75,5 +75,13 @@ export {
   quickAnalysis,
   simulateMove,
 } from "./training";
+// Simulation
+export {
+  runSimulation,
+  SimulationController,
+  type SimulationConfig,
+  type SimulationResult,
+  type SimulationStats,
+} from "./simulation";
 // Types
 export * from "./types";

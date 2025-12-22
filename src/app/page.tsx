@@ -9,6 +9,7 @@ import {
   Swords,
   Trophy,
   Trash2,
+  TrendingUp,
   Users,
   WifiOff,
   X,
@@ -155,7 +156,7 @@ export default function Home() {
       )}
 
       {/* Game Mode Cards */}
-      <div className="grid md:grid-cols-3 gap-[clamp(1rem,3vw,1.5rem)] max-w-[min(72rem,90vw)] w-full">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-[clamp(1rem,3vw,1.5rem)] max-w-[min(96rem,90vw)] w-full">
         {/* VS AI */}
         <Card className="relative overflow-hidden group hover:border-accent/50 transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
@@ -298,6 +299,32 @@ export default function Home() {
                 Offline
               </Button>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Mass Simulation */}
+        <Card className="relative overflow-hidden group hover:border-accent/50 transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-accent" />
+              Mass Simulation
+            </CardTitle>
+            <CardDescription>
+              Run hundreds of games and analyze results
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Compare AI strategies by running large-scale simulations. View real-time statistics and replay games highlight-style.
+            </p>
+
+            <Link href="/simulation" className="block">
+              <Button variant="default" className="w-full" size="lg">
+                <TrendingUp className="mr-2 h-4 w-4" />
+                Run Simulation
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
