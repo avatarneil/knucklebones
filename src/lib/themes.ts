@@ -2,7 +2,7 @@
  * Theme definitions for the application
  */
 
-export type ThemeId = "legacy" | "cult-of-the-lamb" | "dark" | "light" | "ocean" | "forest";
+export type ThemeId = "legacy" | "cult-of-the-lamb" | "dark" | "light" | "ocean" | "forest" | "oled-dark";
 
 export interface Theme {
   id: ThemeId;
@@ -240,6 +240,42 @@ export const forestTheme: Theme = {
   },
 };
 
+/**
+ * OLED Dark theme - true black backgrounds optimized for OLED displays
+ * Uses pure black (#000000) to allow OLED pixels to turn off completely,
+ * saving battery and providing perfect contrast with vibrant accent colors
+ */
+export const oledDarkTheme: Theme = {
+  id: "oled-dark",
+  name: "OLED Dark",
+  description: "True black theme optimized for OLED displays",
+  colors: {
+    background: "0 0% 0%", // Pure black - OLED pixels turn off
+    foreground: "0 0% 98%", // Near-white for maximum contrast
+    card: "0 0% 3%", // Very dark gray, almost black
+    cardForeground: "0 0% 98%",
+    muted: "0 0% 8%", // Dark gray for subtle elements
+    mutedForeground: "0 0% 65%",
+    accent: "220 90% 65%", // Bright cyan-blue for accents
+    accentForeground: "0 0% 0%",
+    primary: "210 100% 60%", // Vibrant blue
+    primaryForeground: "0 0% 98%",
+    secondary: "280 70% 60%", // Bright purple
+    secondaryForeground: "0 0% 98%",
+    destructive: "0 90% 65%", // Bright red
+    destructiveForeground: "0 0% 98%",
+    border: "0 0% 12%", // Subtle border that's barely visible
+    input: "0 0% 5%", // Very dark input background
+    ring: "220 90% 65%",
+    dice1: "0 90% 60%", // Bright red
+    dice2: "30 95% 60%", // Bright orange
+    dice3: "50 95% 60%", // Bright yellow
+    dice4: "150 80% 55%", // Bright green
+    dice5: "200 90% 65%", // Bright cyan
+    dice6: "280 80% 65%", // Bright purple
+  },
+};
+
 export const themes: Record<ThemeId, Theme> = {
   legacy: legacyTheme,
   "cult-of-the-lamb": cultOfTheLambTheme,
@@ -247,6 +283,7 @@ export const themes: Record<ThemeId, Theme> = {
   light: lightTheme,
   ocean: oceanTheme,
   forest: forestTheme,
+  "oled-dark": oledDarkTheme,
 };
 
 export const themeIds: ThemeId[] = Object.keys(themes) as ThemeId[];
