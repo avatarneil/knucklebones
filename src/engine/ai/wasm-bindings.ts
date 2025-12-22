@@ -99,6 +99,11 @@ export function getBestMoveWasm(
   offenseWeight: number,
   defenseWeight: number,
   advancedEval: boolean,
+  opponentDepth?: number,
+  opponentRandomness?: number,
+  opponentOffenseWeight?: number,
+  opponentDefenseWeight?: number,
+  opponentAdvancedEval?: boolean,
 ): number | null {
   // Check if WASM is ready (non-blocking)
   if (!ensureWasmReady() || !aiEngine) {
@@ -111,6 +116,13 @@ export function getBestMoveWasm(
     const playerNum = currentPlayer === "player1" ? 0 : 1;
     const dieValue = currentDie === null ? 0 : currentDie;
 
+    // Use opponent config if provided, otherwise use same as player config (backward compatibility)
+    const oppDepth = opponentDepth ?? depth;
+    const oppRandomness = opponentRandomness ?? randomness;
+    const oppOffenseWeight = opponentOffenseWeight ?? offenseWeight;
+    const oppDefenseWeight = opponentDefenseWeight ?? defenseWeight;
+    const oppAdvancedEval = opponentAdvancedEval ?? advancedEval;
+
     const result = aiEngine.get_best_move(
       grid1Arr,
       grid2Arr,
@@ -121,6 +133,11 @@ export function getBestMoveWasm(
       offenseWeight,
       defenseWeight,
       advancedEval,
+      oppDepth,
+      oppRandomness,
+      oppOffenseWeight,
+      oppDefenseWeight,
+      oppAdvancedEval,
     );
 
     return result === -1 ? null : result;

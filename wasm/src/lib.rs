@@ -395,17 +395,18 @@ fn max_node(
     state: &GameState,
     depth: u32,
     player: Player,
-    config: &DifficultyConfig,
+    player_config: &DifficultyConfig,
+    opponent_config: &DifficultyConfig,
     ctx: &mut SearchContext,
 ) -> f64 {
     ctx.nodes_explored += 1;
     
     if ctx.nodes_explored > ctx.max_nodes || state.phase == GamePhase::Ended || depth == 0 {
-        return evaluate(state, player, config);
+        return evaluate(state, player, player_config);
     }
     
     if state.phase == GamePhase::Rolling {
-        return chance_node(state, depth, player, config, ctx);
+        return chance_node(state, depth, player, player_config, opponent_config, ctx);
     }
     
     // Check transposition table
@@ -426,7 +427,7 @@ fn max_node(
         .collect();
     
     if legal_columns.is_empty() {
-        return evaluate(state, player, config);
+        return evaluate(state, player, player_config);
     }
     
     let ordered = order_moves(state, &legal_columns, player);
@@ -435,11 +436,11 @@ fn max_node(
     for col in ordered {
         if let Some(new_state) = apply_move(state, col) {
             let value = if new_state.phase == GamePhase::Ended {
-                evaluate(&new_state, player, config)
+                evaluate(&new_state, player, player_config)
             } else if new_state.current_player == player {
-                chance_node(&new_state, depth - 1, player, config, ctx)
+                chance_node(&new_state, depth - 1, player, player_config, opponent_config, ctx)
             } else {
-                min_node(&new_state, depth - 1, player, config, ctx)
+                min_node(&new_state, depth - 1, player, player_config, opponent_config, ctx)
             };
             
             max_value = max_value.max(value);
@@ -456,17 +457,18 @@ fn min_node(
     state: &GameState,
     depth: u32,
     player: Player,
-    config: &DifficultyConfig,
+    player_config: &DifficultyConfig,
+    opponent_config: &DifficultyConfig,
     ctx: &mut SearchContext,
 ) -> f64 {
     ctx.nodes_explored += 1;
     
     if ctx.nodes_explored > ctx.max_nodes || state.phase == GamePhase::Ended || depth == 0 {
-        return evaluate(state, player, config);
+        return evaluate(state, player, player_config);
     }
     
     if state.phase == GamePhase::Rolling {
-        return chance_node(state, depth, player, config, ctx);
+        return chance_node(state, depth, player, player_config, opponent_config, ctx);
     }
     
     let grid = match state.current_player {
@@ -479,21 +481,84 @@ fn min_node(
         .collect();
     
     if legal_columns.is_empty() {
-        return evaluate(state, player, config);
+        return evaluate(state, player, player_config);
     }
     
-    let mut min_value = f64::INFINITY;
+    // Determine opponent's move based on their config
+    let opponent = state.current_player;
+    let opponent_move: Option<usize> = if opponent_config.depth == 0 {
+        // Greedy opponent
+        if let Some(die_value) = state.current_die {
+            let mut best_col = legal_columns[0];
+            let mut best_score = f64::NEG_INFINITY;
+            for &col in &legal_columns {
+                let score = evaluate_move_quick(state, col, die_value, opponent);
+                if score > best_score {
+                    best_score = score;
+                    best_col = col;
+                }
+            }
+            Some(best_col)
+        } else {
+            None
+        }
+    } else if opponent_config.randomness > 0.0 && js_sys::Math::random() < opponent_config.randomness {
+        // Random move
+        let idx = (js_sys::Math::random() * legal_columns.len() as f64) as usize;
+        Some(legal_columns[idx])
+    } else {
+        // Opponent uses expectimax - find their best move
+        let opponent_search_depth = opponent_config.depth.min(depth);
+        let limited_opponent_config = DifficultyConfig {
+            depth: opponent_search_depth,
+            ..*opponent_config
+        };
+        let ordered = order_moves(state, &legal_columns, opponent);
+        let mut best_move: Option<usize> = None;
+        let mut best_value = f64::NEG_INFINITY;
+        
+        for col in ordered {
+            if let Some(new_state) = apply_move(state, col) {
+                let value = if new_state.phase == GamePhase::Ended {
+                    evaluate(&new_state, opponent, &limited_opponent_config)
+                } else {
+                    chance_node(&new_state, opponent_search_depth - 1, opponent, &limited_opponent_config, player_config, ctx)
+                };
+                
+                if value > best_value {
+                    best_value = value;
+                    best_move = Some(col);
+                }
+            }
+        }
+        best_move
+    };
     
+    // Evaluate opponent's chosen move from our perspective
+    if let Some(opp_col) = opponent_move {
+        if let Some(new_state) = apply_move(state, opp_col) {
+            let value = if new_state.phase == GamePhase::Ended {
+                evaluate(&new_state, player, player_config)
+            } else if new_state.current_player == player {
+                chance_node(&new_state, depth - 1, player, player_config, opponent_config, ctx)
+            } else {
+                chance_node(&new_state, depth - 1, player, player_config, opponent_config, ctx)
+            };
+            return value;
+        }
+    }
+    
+    // Fallback: evaluate all moves and take minimum
+    let mut min_value = f64::INFINITY;
     for col in legal_columns {
         if let Some(new_state) = apply_move(state, col) {
             let value = if new_state.phase == GamePhase::Ended {
-                evaluate(&new_state, player, config)
+                evaluate(&new_state, player, player_config)
             } else if new_state.current_player == player {
-                chance_node(&new_state, depth - 1, player, config, ctx)
+                chance_node(&new_state, depth - 1, player, player_config, opponent_config, ctx)
             } else {
-                chance_node(&new_state, depth - 1, player, config, ctx)
+                chance_node(&new_state, depth - 1, player, player_config, opponent_config, ctx)
             };
-            
             min_value = min_value.min(value);
         }
     }
@@ -505,20 +570,21 @@ fn chance_node(
     state: &GameState,
     depth: u32,
     player: Player,
-    config: &DifficultyConfig,
+    player_config: &DifficultyConfig,
+    opponent_config: &DifficultyConfig,
     ctx: &mut SearchContext,
 ) -> f64 {
     ctx.nodes_explored += 1;
     
     if ctx.nodes_explored > ctx.max_nodes {
-        return evaluate(state, player, config);
+        return evaluate(state, player, player_config);
     }
     
     if state.phase != GamePhase::Rolling {
         return if state.current_player == player {
-            max_node(state, depth, player, config, ctx)
+            max_node(state, depth, player, player_config, opponent_config, ctx)
         } else {
-            min_node(state, depth, player, config, ctx)
+            min_node(state, depth, player, player_config, opponent_config, ctx)
         };
     }
     
@@ -526,9 +592,9 @@ fn chance_node(
     for die_value in 1..=6 {
         let rolled_state = roll_die(state, die_value);
         let value = if rolled_state.current_player == player {
-            max_node(&rolled_state, depth, player, config, ctx)
+            max_node(&rolled_state, depth, player, player_config, opponent_config, ctx)
         } else {
-            min_node(&rolled_state, depth, player, config, ctx)
+            min_node(&rolled_state, depth, player, player_config, opponent_config, ctx)
         };
         total_value += value / 6.0;
     }
@@ -568,6 +634,11 @@ impl AIEngine {
         offense_weight: f64,
         defense_weight: f64,
         advanced_eval: bool,
+        opponent_depth: u32,
+        opponent_randomness: f64,
+        opponent_offense_weight: f64,
+        opponent_defense_weight: f64,
+        opponent_advanced_eval: bool,
     ) -> i32 {
         // Convert from JS arrays to GameState
         let mut state = GameState {
@@ -642,12 +713,20 @@ impl AIEngine {
         }
         
         // Expectimax search
-        let config = DifficultyConfig {
+        let player_config = DifficultyConfig {
             depth,
             randomness,
             offense_weight,
             defense_weight,
             advanced_eval,
+        };
+        
+        let opponent_config = DifficultyConfig {
+            depth: opponent_depth,
+            randomness: opponent_randomness,
+            offense_weight: opponent_offense_weight,
+            defense_weight: opponent_defense_weight,
+            advanced_eval: opponent_advanced_eval,
         };
         
         let ordered = order_moves(&state, &legal_columns, player);
@@ -657,9 +736,9 @@ impl AIEngine {
         for col in ordered {
             if let Some(new_state) = apply_move(&state, col) {
                 let value = if new_state.phase == GamePhase::Ended {
-                    evaluate(&new_state, player, &config)
+                    evaluate(&new_state, player, &player_config)
                 } else {
-                    chance_node(&new_state, depth - 1, player, &config, &mut self.ctx)
+                    chance_node(&new_state, depth - 1, player, &player_config, &opponent_config, &mut self.ctx)
                 };
                 
                 if value > best_value {

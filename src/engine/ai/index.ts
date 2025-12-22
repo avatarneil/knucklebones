@@ -74,7 +74,6 @@ export class AIPlayer {
       const opponentConfig = opponentDifficulty ? getDifficultyConfig(opponentDifficulty) : undefined;
       
       // Try WASM first if available (synchronous, non-blocking)
-      // Note: WASM doesn't support different opponent configs yet, so it uses the same config
       if (state.phase === "placing" && state.currentDie !== null) {
         const wasmMove = getBestMoveWasm(
           state.grids.player1,
@@ -86,6 +85,11 @@ export class AIPlayer {
           config.offenseWeight,
           config.defenseWeight,
           config.advancedEval,
+          opponentConfig?.depth,
+          opponentConfig?.randomness,
+          opponentConfig?.offenseWeight,
+          opponentConfig?.defenseWeight,
+          opponentConfig?.advancedEval,
         );
         if (wasmMove !== null) {
           return wasmMove as ColumnIndex;
@@ -177,8 +181,6 @@ export function getAIMove(
     const opponentConfig = opponentDifficulty ? getDifficultyConfig(opponentDifficulty) : undefined;
     
     // Try WASM first if available (synchronous, non-blocking)
-    // Note: WASM doesn't support different opponent configs yet, so it uses the same config
-    // This is acceptable for backward compatibility but may not be accurate in simulation mode
     if (state.phase === "placing" && state.currentDie !== null) {
       const wasmMove = getBestMoveWasm(
         state.grids.player1,
@@ -190,6 +192,11 @@ export function getAIMove(
         config.offenseWeight,
         config.defenseWeight,
         config.advancedEval,
+        opponentConfig?.depth,
+        opponentConfig?.randomness,
+        opponentConfig?.offenseWeight,
+        opponentConfig?.defenseWeight,
+        opponentConfig?.advancedEval,
       );
       if (wasmMove !== null) {
         return wasmMove as ColumnIndex;
