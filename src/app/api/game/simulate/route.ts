@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     const { player1Strategy, player2Strategy, initialState } = body;
 
     let state = initialState ?? createInitialState();
-    const moves: SimulateResponse["result"]["moves"] = [];
+    const moves: NonNullable<SimulateResponse["result"]>["moves"] = [];
     let turnCount = 0;
     const maxTurns = 100; // Safety limit to prevent infinite loops
 
