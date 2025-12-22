@@ -87,7 +87,7 @@ export function DiceRoller({
       ) : currentDie ? (
         <div className="text-center">
           <p className="text-[clamp(0.75rem,2vw,0.875rem)] text-muted-foreground">
-            {playerName}&apos;s turn
+            {playerName === "You" ? "Your turn" : `${playerName}'s turn`}
           </p>
           <p className="text-[clamp(0.875rem,2.5vw,1.125rem)] font-semibold text-accent">
             Choose a column
