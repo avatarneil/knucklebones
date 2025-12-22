@@ -49,6 +49,7 @@ function PlayContent() {
   const [showSettings, setShowSettings] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
+  const [showClearHistoryDialog, setShowClearHistoryDialog] = useState(false);
   const [pendingSavedSession, setPendingSavedSession] = useState<ReturnType<typeof gameStorage.loadSession>>(null);
   const [lastWinner, setLastWinner] = useState<
     "player1" | "player2" | "draw" | null
@@ -396,6 +397,29 @@ function PlayContent() {
                 onCheckedChange={game.toggleTrainingMode}
               />
             </div>
+
+            {/* Clear History Section */}
+            {gameHistory.history.length > 0 && (
+              <div className="pt-4 border-t">
+                <div className="space-y-2">
+                  <Label className="text-destructive">Danger Zone</Label>
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={() => {
+                      setShowSettings(false);
+                      setShowClearHistoryDialog(true);
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Clear Game History ({gameHistory.history.length} games)
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    This will permanently delete all game history and reset statistics.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
@@ -428,6 +452,41 @@ function PlayContent() {
             <Button onClick={handleNewGame}>
               <RotateCcw className="mr-2 h-4 w-4" />
               Play Again
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Clear History Confirmation Dialog */}
+      <Dialog open={showClearHistoryDialog} onOpenChange={setShowClearHistoryDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-destructive" />
+              Clear Game History?
+            </DialogTitle>
+            <DialogDescription>
+              This will permanently delete all {gameHistory.history.length} game{gameHistory.history.length !== 1 ? "s" : ""} from your history and reset your statistics. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowClearHistoryDialog(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                gameHistory.clearHistory();
+                setShowClearHistoryDialog(false);
+              }}
+              className="flex-1"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Clear History
             </Button>
           </DialogFooter>
         </DialogContent>

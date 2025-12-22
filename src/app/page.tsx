@@ -8,6 +8,7 @@ import {
   Sparkles,
   Swords,
   Trophy,
+  Trash2,
   Users,
   WifiOff,
   X,
@@ -23,6 +24,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -40,6 +49,7 @@ import { useOnlineStatus } from "@/hooks/usePWA";
 export default function Home() {
   const [difficulty, setDifficulty] = useState<DifficultyLevel>("medium");
   const [trainingMode, setTrainingMode] = useState(false);
+  const [showClearHistoryDialog, setShowClearHistoryDialog] = useState(false);
   const isOnline = useOnlineStatus();
   const gameHistory = useGameHistory();
 
@@ -280,9 +290,23 @@ export default function Home() {
                       ({gameHistory.history.length})
                     </span>
                   </span>
-                  <span className="text-muted-foreground text-sm group-open:rotate-180 transition-transform">
-                    ▼
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShowClearHistoryDialog(true);
+                      }}
+                      title="Clear History"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                    <span className="text-muted-foreground text-sm group-open:rotate-180 transition-transform">
+                      ▼
+                    </span>
+                  </div>
                 </CardTitle>
               </CardHeader>
             </Card>
@@ -382,6 +406,41 @@ export default function Home() {
           </CardContent>
         </Card>
       </details>
+
+      {/* Clear History Confirmation Dialog */}
+      <Dialog open={showClearHistoryDialog} onOpenChange={setShowClearHistoryDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-destructive" />
+              Clear Game History?
+            </DialogTitle>
+            <DialogDescription>
+              This will permanently delete all {gameHistory.history.length} game{gameHistory.history.length !== 1 ? "s" : ""} from your history and reset your statistics. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowClearHistoryDialog(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                gameHistory.clearHistory();
+                setShowClearHistoryDialog(false);
+              }}
+              className="flex-1"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Clear History
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer */}
       <footer className="mt-[clamp(1.5rem,4vw,3rem)] text-center text-[clamp(0.75rem,2vw,0.875rem)] text-muted-foreground">
