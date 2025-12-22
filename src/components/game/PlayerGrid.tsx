@@ -4,6 +4,7 @@ import { calculateGridScore } from "@/engine/scorer";
 import type { ColumnIndex, Grid, MoveAnalysis } from "@/engine/types";
 import { ALL_COLUMNS } from "@/engine/types";
 import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 import { Column } from "./Column";
 
 interface PlayerGridProps {
@@ -20,6 +21,7 @@ interface PlayerGridProps {
   newDieColumn?: ColumnIndex | null;
   newDieRow?: number | null;
   removingDice?: Array<{ column: ColumnIndex; indices: number[] }>;
+  isThinking?: boolean;
 }
 
 export function PlayerGrid({
@@ -36,6 +38,7 @@ export function PlayerGrid({
   newDieColumn,
   newDieRow,
   removingDice = [],
+  isThinking = false,
 }: PlayerGridProps) {
   const score = calculateGridScore(grid);
 
@@ -68,6 +71,9 @@ export function PlayerGrid({
           )}
         />
         <span className="font-semibold text-[clamp(0.875rem,2.5vw,1.125rem)]">{playerName}</span>
+        {isThinking && (
+          <Loader2 className="w-4 h-4 animate-spin text-accent" />
+        )}
         <div
           className={cn(
             "font-mono font-bold text-[clamp(1.125rem,3.5vw,1.5rem)] tabular-nums transition-all",

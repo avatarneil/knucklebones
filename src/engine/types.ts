@@ -73,10 +73,11 @@ export type DifficultyLevel =
   | "easy"
   | "medium"
   | "hard"
-  | "expert";
+  | "expert"
+  | "greedy";
 
 /** Game mode */
-export type GameMode = "ai" | "pvp" | "training";
+export type GameMode = "ai" | "pvp" | "training" | "ai-vs-ai";
 
 /** Configuration for a game */
 export interface GameConfig {

@@ -155,7 +155,7 @@ export default function Home() {
       )}
 
       {/* Game Mode Cards */}
-      <div className="grid md:grid-cols-2 gap-[clamp(1rem,3vw,1.5rem)] max-w-[min(48rem,90vw)] w-full">
+      <div className="grid md:grid-cols-3 gap-[clamp(1rem,3vw,1.5rem)] max-w-[min(72rem,90vw)] w-full">
         {/* VS AI */}
         <Card className="relative overflow-hidden group hover:border-accent/50 transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
@@ -224,6 +224,32 @@ export default function Home() {
               <Button className="w-full" size="lg">
                 <Sparkles className="mr-2 h-4 w-4" />
                 {gameHistory.hasSavedGame ? "New Game" : "Start Game"}
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* AI vs AI */}
+        <Card className="relative overflow-hidden group hover:border-primary/50 transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              AI vs AI
+            </CardTitle>
+            <CardDescription>
+              Watch two AI strategies compete against each other
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Compare different AI strategies by pitting them against each other. Great for understanding how different algorithms perform.
+            </p>
+
+            <Link href="/ai-vs-ai" className="block">
+              <Button variant="default" className="w-full" size="lg">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Watch Match
               </Button>
             </Link>
           </CardContent>
@@ -449,6 +475,11 @@ export default function Home() {
           of Knucklebones
         </p>
         <p className="mt-1">Inspired by Cult of the Lamb by Massive Monster</p>
+        <p className="mt-2">
+          <Link href="/docs" className="text-accent hover:underline">
+            Learn about AI strategies
+          </Link>
+        </p>
       </footer>
     </main>
   );

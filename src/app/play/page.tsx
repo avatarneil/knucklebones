@@ -333,6 +333,7 @@ function PlayContent() {
         <GameBoard
           state={game.state}
           isRolling={game.isRolling}
+          isThinking={game.isThinking}
           onRoll={game.roll}
           onColumnClick={game.placeDie}
           player1Name="You"

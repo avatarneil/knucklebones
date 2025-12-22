@@ -239,3 +239,27 @@ export function evaluateMoveQuick(
 
   return scoreGain + opponentLoss;
 }
+
+/**
+ * Greedy strategy: always picks the move with highest immediate score gain
+ */
+export function getGreedyMove(state: GameState): ColumnIndex | null {
+  if (state.phase !== "placing" || state.currentDie === null) {
+    return null;
+  }
+
+  const grid = state.grids[state.currentPlayer];
+  const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(grid[i]));
+
+  if (legalColumns.length === 0) return null;
+  if (legalColumns.length === 1) return legalColumns[0];
+
+  // Score each legal move and pick the best
+  const scored = legalColumns.map((col) => ({
+    col,
+    score: evaluateMoveQuick(state, col, state.currentDie!, state.currentPlayer),
+  }));
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0]?.col ?? legalColumns[0];
+}

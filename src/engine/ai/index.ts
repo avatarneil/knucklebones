@@ -10,13 +10,14 @@ import {
   getAllDifficultyLevels,
   getDifficultyConfig,
 } from "./difficulty";
-import { evaluate, evaluateMoveQuick } from "./evaluation";
+import { evaluate, evaluateMoveQuick, getGreedyMove } from "./evaluation";
 import { clearTranspositionTable, getBestMove } from "./expectimax";
 import { ALL_COLUMNS } from "../types";
 import { isColumnFull } from "../scorer";
 
 export { DIFFICULTY_CONFIGS, getDifficultyConfig, getAllDifficultyLevels };
 export { clearTranspositionTable };
+export { getGreedyMove };
 
 /**
  * AI Player class for convenient usage

@@ -10,6 +10,7 @@ import { ScoreCard } from "./ScoreCard";
 interface GameBoardProps {
   state: GameState;
   isRolling?: boolean;
+  isThinking?: boolean;
   onRoll?: () => void;
   onColumnClick?: (column: ColumnIndex) => void;
   player1Name?: string;
@@ -24,6 +25,7 @@ interface GameBoardProps {
 export function GameBoard({
   state,
   isRolling = false,
+  isThinking = false,
   onRoll,
   onColumnClick,
   player1Name = "You",
@@ -45,6 +47,7 @@ export function GameBoard({
 
   // Check if current player is human
   const isCurrentPlayerHuman = isPlayer1Turn ? isPlayer1Human : isPlayer2Human;
+  const isPlayer2Turn = !isPlayer1Turn;
 
   // Can roll if it's rolling phase and current player is human
   const canRoll = isRollingPhase && isCurrentPlayerHuman && !isEnded;
@@ -69,6 +72,7 @@ export function GameBoard({
         moveAnalysis={!isPlayer1Turn ? moveAnalysis : undefined}
         showProbabilities={showProbabilities && !isPlayer1Turn}
         highlightedColumn={!isPlayer1Turn ? highlightedColumn : null}
+        isThinking={isThinking && isPlayer2Turn && !isPlayer2Human}
       />
 
       {/* Center section: Score + Dice */}
@@ -126,6 +130,7 @@ export function GameBoard({
         moveAnalysis={isPlayer1Turn ? moveAnalysis : undefined}
         showProbabilities={showProbabilities && isPlayer1Turn}
         highlightedColumn={isPlayer1Turn ? highlightedColumn : null}
+        isThinking={isThinking && isPlayer1Turn && !isPlayer1Human}
       />
     </div>
   );
