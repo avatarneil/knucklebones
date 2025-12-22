@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { io, type Socket } from "socket.io-client";
 import type { ColumnIndex, DieValue, GameState, Player } from "@/engine/types";
 
 interface RoomState {
@@ -9,6 +8,11 @@ interface RoomState {
   player1: { name: string } | null;
   player2: { name: string } | null;
   roomId: string;
+  role: Player | null;
+  isMyTurn: boolean;
+  opponentDisconnected: boolean;
+  isWaitingForOpponent: boolean;
+  rematchRequested: Player | null;
 }
 
 interface UseMultiplayerReturn {
@@ -43,240 +47,367 @@ interface UseMultiplayerReturn {
   error: string | null;
 }
 
+// Polling interval in milliseconds
+const POLL_INTERVAL = 1000;
+
+// Storage key for player token
+const PLAYER_TOKEN_KEY = "knucklebones_player_token";
+const ROOM_ID_KEY = "knucklebones_room_id";
+
 export function useMultiplayer(): UseMultiplayerReturn {
-  const socketRef = useRef<Socket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(true); // Always "connected" with polling
   const [roomId, setRoomId] = useState<string | null>(null);
   const [role, setRole] = useState<Player | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [player1Name, setPlayer1Name] = useState<string | null>(null);
   const [player2Name, setPlayer2Name] = useState<string | null>(null);
+  const [isWaitingForOpponent, setIsWaitingForOpponent] = useState(false);
+  const [isMyTurn, setIsMyTurn] = useState(false);
   const [opponentDisconnected, setOpponentDisconnected] = useState(false);
   const [rematchRequested, setRematchRequested] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isWaitingForOpponent =
-    roomId !== null && (player1Name === null || player2Name === null);
-  const isMyTurn = gameState?.currentPlayer === role && !isWaitingForOpponent;
+  const playerTokenRef = useRef<string | null>(null);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
-  const connect = useCallback(() => {
-    if (socketRef.current?.connected) return;
-
-    const socket = io({
-      path: "/api/socket",
-      transports: ["websocket", "polling"],
-    });
-
-    socket.on("connect", () => {
-      console.log("Socket connected");
-      setIsConnected(true);
-      setError(null);
-    });
-
-    socket.on("disconnect", () => {
-      console.log("Socket disconnected");
-      setIsConnected(false);
-    });
-
-    socket.on("connect_error", (err) => {
-      console.error("Socket connection error:", err);
-      setError("Failed to connect to server");
-    });
-
-    socket.on("game-state", (data: RoomState) => {
-      setGameState(data.state);
-      setPlayer1Name(data.player1?.name ?? null);
-      setPlayer2Name(data.player2?.name ?? null);
-      setRoomId(data.roomId);
-    });
-
-    socket.on("player-joined", (data: { playerName: string; role: string }) => {
-      console.log(`${data.playerName} joined as ${data.role}`);
-    });
-
-    socket.on("player-disconnected", (_data: { role: Player }) => {
-      setOpponentDisconnected(true);
-    });
-
-    socket.on("player-left", (data: { role: Player }) => {
-      if (data.role === "player1") {
-        setPlayer1Name(null);
-      } else {
-        setPlayer2Name(null);
-      }
-    });
-
-    socket.on("rematch-requested", (_data: { from: Player }) => {
-      setRematchRequested(true);
-    });
-
-    socket.on("rematch-started", () => {
-      setRematchRequested(false);
-      setOpponentDisconnected(false);
-    });
-
-    socket.on(
-      "game-over",
-      (data: { winner: "player1" | "player2" | "draw" }) => {
-        console.log("Game over:", data.winner);
-      },
-    );
-
-    socketRef.current = socket;
+  // Get stored player token
+  const getPlayerToken = useCallback(() => {
+    if (playerTokenRef.current) return playerTokenRef.current;
+    if (typeof window !== "undefined") {
+      playerTokenRef.current = sessionStorage.getItem(PLAYER_TOKEN_KEY);
+    }
+    return playerTokenRef.current;
   }, []);
 
-  const disconnect = useCallback(() => {
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
-      setIsConnected(false);
-      setRoomId(null);
-      setRole(null);
-      setGameState(null);
-      setPlayer1Name(null);
-      setPlayer2Name(null);
+  // Set player token
+  const setPlayerToken = useCallback((token: string | null) => {
+    playerTokenRef.current = token;
+    if (typeof window !== "undefined") {
+      if (token) {
+        sessionStorage.setItem(PLAYER_TOKEN_KEY, token);
+      } else {
+        sessionStorage.removeItem(PLAYER_TOKEN_KEY);
+      }
     }
   }, []);
 
-  const createRoom = useCallback((playerName: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      if (!socketRef.current?.connected) {
-        reject(new Error("Not connected"));
-        return;
-      }
-
-      socketRef.current.emit(
-        "create-room",
-        { playerName },
-        (response: {
-          success: boolean;
-          roomId?: string;
-          role?: Player;
-          error?: string;
-        }) => {
-          if (response.success && response.roomId) {
-            setRoomId(response.roomId);
-            setRole(response.role ?? null);
-            resolve(response.roomId);
-          } else {
-            reject(new Error(response.error || "Failed to create room"));
-          }
-        },
-      );
-    });
+  // Get stored room ID
+  const getStoredRoomId = useCallback(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem(ROOM_ID_KEY);
+    }
+    return null;
   }, []);
 
-  const joinRoom = useCallback(
-    (roomIdToJoin: string, playerName: string): Promise<boolean> => {
-      return new Promise((resolve, reject) => {
-        if (!socketRef.current?.connected) {
-          reject(new Error("Not connected"));
+  // Set stored room ID
+  const setStoredRoomId = useCallback((id: string | null) => {
+    if (typeof window !== "undefined") {
+      if (id) {
+        sessionStorage.setItem(ROOM_ID_KEY, id);
+      } else {
+        sessionStorage.removeItem(ROOM_ID_KEY);
+      }
+    }
+  }, []);
+
+  // Poll for room state
+  const pollRoomState = useCallback(async () => {
+    const currentRoomId = roomId || getStoredRoomId();
+    const token = getPlayerToken();
+
+    if (!currentRoomId) return;
+
+    try {
+      const response = await fetch(`/api/rooms/${currentRoomId}/state`, {
+        headers: token ? { "x-player-token": token } : {},
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          // Room no longer exists
+          setRoomId(null);
+          setStoredRoomId(null);
+          setPlayerToken(null);
+          setGameState(null);
+          setError("Room no longer exists");
           return;
         }
+        throw new Error("Failed to fetch room state");
+      }
 
-        socketRef.current.emit(
-          "join-room",
-          { roomId: roomIdToJoin, playerName },
-          (response: {
-            success: boolean;
-            roomId?: string;
-            role?: Player;
-            error?: string;
-          }) => {
-            if (response.success) {
-              setRoomId(response.roomId ?? null);
-              setRole(response.role ?? null);
-              resolve(true);
-            } else {
-              setError(response.error || "Failed to join room");
-              resolve(false);
-            }
-          },
-        );
-      });
+      const data = (await response.json()) as RoomState & { success: boolean };
+
+      if (data.success) {
+        setGameState(data.state);
+        setPlayer1Name(data.player1?.name ?? null);
+        setPlayer2Name(data.player2?.name ?? null);
+        setRoomId(data.roomId);
+        setRole(data.role);
+        setIsMyTurn(data.isMyTurn);
+        setIsWaitingForOpponent(data.isWaitingForOpponent);
+        setOpponentDisconnected(data.opponentDisconnected);
+        
+        // Check if opponent requested rematch
+        const opponent = data.role === "player1" ? "player2" : "player1";
+        setRematchRequested(data.rematchRequested === opponent);
+        
+        setError(null);
+      }
+    } catch (err) {
+      console.error("Error polling room state:", err);
+      // Don't set error on transient network issues
+    }
+  }, [roomId, getPlayerToken, getStoredRoomId, setStoredRoomId, setPlayerToken]);
+
+  // Start polling
+  const startPolling = useCallback(() => {
+    if (pollingRef.current) return;
+
+    // Initial poll
+    pollRoomState();
+
+    // Set up interval
+    pollingRef.current = setInterval(pollRoomState, POLL_INTERVAL);
+  }, [pollRoomState]);
+
+  // Stop polling
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, []);
+
+  // Connect (start polling if in a room)
+  const connect = useCallback(() => {
+    const storedRoomId = getStoredRoomId();
+    if (storedRoomId) {
+      setRoomId(storedRoomId);
+      startPolling();
+    }
+    setIsConnected(true);
+  }, [getStoredRoomId, startPolling]);
+
+  // Disconnect (stop polling)
+  const disconnect = useCallback(() => {
+    stopPolling();
+    setIsConnected(false);
+  }, [stopPolling]);
+
+  // Create room
+  const createRoom = useCallback(
+    async (playerName: string): Promise<string> => {
+      try {
+        const response = await fetch("/api/rooms/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ playerName }),
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error || "Failed to create room");
+        }
+
+        setPlayerToken(data.playerToken);
+        setStoredRoomId(data.roomId);
+        setRoomId(data.roomId);
+        setRole(data.role);
+        setIsWaitingForOpponent(true);
+
+        // Start polling
+        startPolling();
+
+        return data.roomId;
+      } catch (err) {
+        console.error("Error creating room:", err);
+        throw err;
+      }
     },
-    [],
+    [setPlayerToken, setStoredRoomId, startPolling]
   );
 
-  const leaveRoom = useCallback(() => {
-    if (socketRef.current?.connected && roomId) {
-      socketRef.current.emit("leave-room");
-      setRoomId(null);
-      setRole(null);
-      setGameState(null);
-      setPlayer1Name(null);
-      setPlayer2Name(null);
-      setOpponentDisconnected(false);
-      setRematchRequested(false);
-    }
-  }, [roomId]);
+  // Join room
+  const joinRoom = useCallback(
+    async (roomIdToJoin: string, playerName: string): Promise<boolean> => {
+      try {
+        const response = await fetch("/api/rooms/join", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ roomId: roomIdToJoin, playerName }),
+        });
 
-  const rollDice = useCallback((): Promise<DieValue | null> => {
-    return new Promise((resolve) => {
-      if (!socketRef.current?.connected) {
-        resolve(null);
-        return;
+        const data = await response.json();
+
+        if (!data.success) {
+          setError(data.error || "Failed to join room");
+          return false;
+        }
+
+        setPlayerToken(data.playerToken);
+        setStoredRoomId(data.roomId);
+        setRoomId(data.roomId);
+        setRole(data.role);
+        setError(null);
+
+        // Start polling
+        startPolling();
+
+        return true;
+      } catch (err) {
+        console.error("Error joining room:", err);
+        setError("Failed to join room");
+        return false;
+      }
+    },
+    [setPlayerToken, setStoredRoomId, startPolling]
+  );
+
+  // Leave room
+  const leaveRoom = useCallback(async () => {
+    const token = getPlayerToken();
+
+    if (token) {
+      try {
+        await fetch("/api/rooms/leave", {
+          method: "POST",
+          headers: { "x-player-token": token },
+        });
+      } catch (err) {
+        console.error("Error leaving room:", err);
+      }
+    }
+
+    stopPolling();
+    setPlayerToken(null);
+    setStoredRoomId(null);
+    setRoomId(null);
+    setRole(null);
+    setGameState(null);
+    setPlayer1Name(null);
+    setPlayer2Name(null);
+    setIsWaitingForOpponent(false);
+    setIsMyTurn(false);
+    setOpponentDisconnected(false);
+    setRematchRequested(false);
+  }, [getPlayerToken, stopPolling, setPlayerToken, setStoredRoomId]);
+
+  // Roll dice
+  const rollDice = useCallback(async (): Promise<DieValue | null> => {
+    const token = getPlayerToken();
+
+    if (!token) {
+      setError("Not connected");
+      return null;
+    }
+
+    try {
+      const response = await fetch("/api/game/roll", {
+        method: "POST",
+        headers: { "x-player-token": token },
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        setError(data.error || "Failed to roll dice");
+        return null;
       }
 
-      socketRef.current.emit(
-        "roll-dice",
-        (response: {
-          success: boolean;
-          dieValue?: DieValue;
-          error?: string;
-        }) => {
-          if (response.success && response.dieValue) {
-            resolve(response.dieValue);
-          } else {
-            setError(response.error || "Failed to roll dice");
-            resolve(null);
-          }
-        },
-      );
-    });
-  }, []);
+      // Poll immediately to get updated state
+      await pollRoomState();
 
-  const placeDie = useCallback((column: ColumnIndex): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if (!socketRef.current?.connected) {
-        resolve(false);
-        return;
+      return data.dieValue;
+    } catch (err) {
+      console.error("Error rolling dice:", err);
+      setError("Failed to roll dice");
+      return null;
+    }
+  }, [getPlayerToken, pollRoomState]);
+
+  // Place die
+  const placeDie = useCallback(
+    async (column: ColumnIndex): Promise<boolean> => {
+      const token = getPlayerToken();
+
+      if (!token) {
+        setError("Not connected");
+        return false;
       }
 
-      socketRef.current.emit(
-        "place-die",
-        { column },
-        (response: { success: boolean; error?: string }) => {
-          if (response.success) {
-            resolve(true);
-          } else {
-            setError(response.error || "Failed to place die");
-            resolve(false);
-          }
-        },
-      );
-    });
-  }, []);
+      try {
+        const response = await fetch("/api/game/place", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-player-token": token,
+          },
+          body: JSON.stringify({ column }),
+        });
 
-  const requestRematch = useCallback(() => {
-    if (socketRef.current?.connected) {
-      socketRef.current.emit("request-rematch");
-    }
-  }, []);
+        const data = await response.json();
 
-  const acceptRematch = useCallback(() => {
-    if (socketRef.current?.connected) {
-      socketRef.current.emit("accept-rematch");
-      setRematchRequested(false);
+        if (!data.success) {
+          setError(data.error || "Failed to place die");
+          return false;
+        }
+
+        // Poll immediately to get updated state
+        await pollRoomState();
+
+        return true;
+      } catch (err) {
+        console.error("Error placing die:", err);
+        setError("Failed to place die");
+        return false;
+      }
+    },
+    [getPlayerToken, pollRoomState]
+  );
+
+  // Request rematch
+  const requestRematch = useCallback(async () => {
+    const token = getPlayerToken();
+
+    if (!token) return;
+
+    try {
+      await fetch("/api/game/rematch", {
+        method: "POST",
+        headers: { "x-player-token": token },
+      });
+
+      // Poll immediately to get updated state
+      await pollRoomState();
+    } catch (err) {
+      console.error("Error requesting rematch:", err);
     }
-  }, []);
+  }, [getPlayerToken, pollRoomState]);
+
+  // Accept rematch (same as request - server handles the logic)
+  const acceptRematch = useCallback(async () => {
+    await requestRematch();
+    setRematchRequested(false);
+  }, [requestRematch]);
+
+  // Start polling when roomId changes
+  useEffect(() => {
+    if (roomId) {
+      startPolling();
+    } else {
+      stopPolling();
+    }
+
+    return () => stopPolling();
+  }, [roomId, startPolling, stopPolling]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      disconnect();
+      stopPolling();
     };
-  }, [disconnect]);
+  }, [stopPolling]);
 
   return {
     isConnected,
