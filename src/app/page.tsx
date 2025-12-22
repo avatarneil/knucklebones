@@ -222,7 +222,7 @@ export default function Home() {
               href={`/play?difficulty=${difficulty}&training=${trainingMode}`}
               className="block"
             >
-              <Button className="w-full" size="lg">
+              <Button variant="default" className="w-full" size="lg">
                 <Sparkles className="mr-2 h-4 w-4" />
                 {gameHistory.hasSavedGame ? "New Game" : "Start Game"}
               </Button>
@@ -248,7 +248,7 @@ export default function Home() {
             </p>
 
             <Link href="/ai-vs-ai" className="block">
-              <Button variant="default" className="w-full" size="lg">
+              <Button variant="accent" className="w-full" size="lg">
                 <Sparkles className="mr-2 h-4 w-4" />
                 Watch Match
               </Button>
@@ -320,7 +320,7 @@ export default function Home() {
             </p>
 
             <Link href="/simulation" className="block">
-              <Button variant="default" className="w-full" size="lg">
+              <Button variant="outline" className="w-full" size="lg">
                 <TrendingUp className="mr-2 h-4 w-4" />
                 Run Simulation
               </Button>
