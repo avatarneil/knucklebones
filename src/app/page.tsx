@@ -46,7 +46,7 @@ export default function Home() {
       <div className="grid md:grid-cols-2 gap-6 max-w-3xl w-full">
         {/* VS AI */}
         <Card className="relative overflow-hidden group hover:border-accent/50 transition-all duration-300">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Swords className="w-5 h-5 text-primary" />
@@ -119,7 +119,7 @@ export default function Home() {
 
         {/* Multiplayer */}
         <Card className="relative overflow-hidden group hover:border-secondary/50 transition-all duration-300">
-          <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5 text-secondary" />
