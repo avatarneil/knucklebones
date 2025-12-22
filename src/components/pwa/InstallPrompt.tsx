@@ -1,11 +1,11 @@
 "use client";
 
-import { Download, Smartphone, X, Zap } from "lucide-react";
+import { Download, Share2, Smartphone, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useInstallPrompt } from "@/hooks/usePWA";
 
 export function InstallPrompt() {
-  const { showPrompt, install, dismissPrompt, canInstall } = useInstallPrompt();
+  const { showPrompt, install, dismissPrompt, canInstall, isIOSDevice } = useInstallPrompt();
 
   if (!showPrompt || !canInstall) {
     return null;
@@ -29,30 +29,58 @@ export function InstallPrompt() {
               <Zap className="w-4 h-4 text-accent" />
               Install KnuckleTrainer
             </h3>
-            <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-              Get the full app experience! Play offline, faster loading, and instant access from your home screen.
-            </p>
-            
-            {/* Action buttons */}
-            <div className="flex items-center gap-3 mt-4">
-              <Button 
-                size="lg" 
-                onClick={install} 
-                className="flex-1 sm:flex-none bg-accent hover:bg-accent/90 text-accent-foreground font-semibold shadow-lg shadow-accent/25"
-              >
-                <Download className="w-5 h-5 mr-2" />
-                Install Now
-              </Button>
-              <Button
-                size="lg"
-                variant="ghost"
-                onClick={dismissPrompt}
-                className="text-muted-foreground hover:text-foreground px-3"
-              >
-                <X className="w-5 h-5" />
-                <span className="sr-only">Dismiss</span>
-              </Button>
-            </div>
+            {isIOSDevice ? (
+              <>
+                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                  Install this app on your iPhone for the best experience! Tap the share button below, then select &quot;Add to Home Screen&quot;.
+                </p>
+                <div className="flex items-center gap-3 mt-4">
+                  <div className="flex-1 text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg border border-border/50">
+                    <p className="font-medium mb-1">Steps:</p>
+                    <ol className="list-decimal list-inside space-y-0.5">
+                      <li>Tap the Share button</li>
+                      <li>Scroll and tap &quot;Add to Home Screen&quot;</li>
+                      <li>Tap &quot;Add&quot; to confirm</li>
+                    </ol>
+                  </div>
+                  <Button
+                    size="lg"
+                    variant="ghost"
+                    onClick={dismissPrompt}
+                    className="text-muted-foreground hover:text-foreground px-3 shrink-0"
+                  >
+                    <X className="w-5 h-5" />
+                    <span className="sr-only">Dismiss</span>
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                  Get the full app experience! Play offline, faster loading, and instant access from your home screen.
+                </p>
+                {/* Action buttons */}
+                <div className="flex items-center gap-3 mt-4">
+                  <Button 
+                    size="lg" 
+                    onClick={install} 
+                    className="flex-1 sm:flex-none bg-accent hover:bg-accent/90 text-accent-foreground font-semibold shadow-lg shadow-accent/25"
+                  >
+                    <Download className="w-5 h-5 mr-2" />
+                    Install Now
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="ghost"
+                    onClick={dismissPrompt}
+                    className="text-muted-foreground hover:text-foreground px-3"
+                  >
+                    <X className="w-5 h-5" />
+                    <span className="sr-only">Dismiss</span>
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
