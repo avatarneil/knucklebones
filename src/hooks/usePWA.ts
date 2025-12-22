@@ -30,6 +30,18 @@ function isIOS(): boolean {
   );
 }
 
+// Detect if running on a mobile device
+function isMobileDevice(): boolean {
+  if (typeof window === "undefined") return false;
+  // Check for touch capability and screen size
+  const hasTouchScreen = navigator.maxTouchPoints > 0 || "ontouchstart" in window;
+  const isSmallScreen = window.innerWidth <= 768;
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+  
+  return isMobileUA || (hasTouchScreen && isSmallScreen);
+}
+
 // Detect if running in standalone mode (already installed)
 function isStandalone(): boolean {
   if (typeof window === "undefined") return false;
@@ -50,6 +62,12 @@ export function useInstallPrompt() {
   useEffect(() => {
     const ios = isIOS();
     setIsIOSDevice(ios);
+
+    // Only show install prompt on mobile devices, not desktop
+    const isMobile = isMobileDevice();
+    if (!isMobile) {
+      return; // Don't show prompt on desktop
+    }
 
     // Check if already installed
     if (isStandalone()) {
