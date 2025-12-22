@@ -24,6 +24,7 @@ export {
   createAIPlayer,
   DIFFICULTY_CONFIGS,
   getAIMove,
+  getGreedyMove,
   getAllDifficultyLevels,
   getDifficultyConfig,
 } from "./ai";

@@ -13,7 +13,7 @@ import { isColumnFull } from "../scorer";
 import type { ColumnIndex, DieValue, GameState, Player } from "../types";
 import { ALL_COLUMNS, ALL_DIE_VALUES } from "../types";
 import type { DifficultyConfig } from "./difficulty";
-import { evaluate, evaluateMoveQuick } from "./evaluation";
+import { evaluate, evaluateMoveQuick, getGreedyMove } from "./evaluation";
 
 /** Result of expectimax search */
 export interface ExpectimaxResult {
@@ -349,6 +349,11 @@ export function getBestMove(
 
   if (legalColumns.length === 0) return null;
   if (legalColumns.length === 1) return legalColumns[0];
+
+  // Greedy strategy: depth 0 means use greedy
+  if (config.depth === 0) {
+    return getGreedyMove(state);
+  }
 
   // Random move based on difficulty
   if (config.randomness > 0 && Math.random() < config.randomness) {

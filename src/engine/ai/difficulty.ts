@@ -26,6 +26,16 @@ export interface DifficultyConfig {
 }
 
 export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
+  greedy: {
+    name: "Greedy",
+    description: "Always picks the move with highest immediate score gain",
+    depth: 0,
+    randomness: 0,
+    considerOpponent: false,
+    offenseWeight: 1.0,
+    defenseWeight: 0.0,
+    advancedEval: false,
+  },
   beginner: {
     name: "Beginner",
     description: "Makes mostly random moves with occasional good plays",
@@ -89,5 +99,5 @@ export function getDifficultyConfig(level: DifficultyLevel): DifficultyConfig {
  * Get all difficulty levels in order
  */
 export function getAllDifficultyLevels(): DifficultyLevel[] {
-  return ["beginner", "easy", "medium", "hard", "expert"];
+  return ["greedy", "beginner", "easy", "medium", "hard", "expert"];
 }
