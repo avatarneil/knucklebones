@@ -162,7 +162,9 @@ function SimulationContent() {
                 disabled={isRunning}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select strategy">
+                    {DIFFICULTY_CONFIGS[player1Strategy]?.name}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(DIFFICULTY_CONFIGS).map(([key, config]) => (
@@ -188,7 +190,9 @@ function SimulationContent() {
                 disabled={isRunning}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select strategy">
+                    {DIFFICULTY_CONFIGS[player2Strategy]?.name}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(DIFFICULTY_CONFIGS).map(([key, config]) => (
