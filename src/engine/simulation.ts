@@ -59,6 +59,7 @@ async function simulateSingleGame(
   let state = createInitialState();
   const moves: SimulationResult["moves"] = [];
   let turnCount = 0;
+  let moveCount = 0;
 
   // Run the game until completion
   while (state.phase !== "ended") {
@@ -94,6 +95,16 @@ async function simulateSingleGame(
 
     state = result.newState;
     turnCount = state.turnNumber;
+    moveCount++;
+
+    // Yield control to UI thread every few moves to prevent blocking
+    // For hard/expert difficulties, yield more frequently due to heavy computation
+    const isHardDifficulty = currentStrategy === "hard" || currentStrategy === "expert";
+    const yieldInterval = isHardDifficulty ? 1 : 3;
+    
+    if (moveCount % yieldInterval === 0) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
   }
 
   const scores = {
@@ -156,6 +167,30 @@ function calculateStats(
 }
 
 /**
+ * Determine appropriate concurrency based on difficulty levels
+ */
+function getConcurrency(
+  player1Strategy: DifficultyLevel,
+  player2Strategy: DifficultyLevel,
+): number {
+  const isExpert = (strategy: DifficultyLevel) => strategy === "expert";
+  const isHard = (strategy: DifficultyLevel) => strategy === "hard";
+
+  // Expert difficulty is extremely computationally intensive - run sequentially
+  if (isExpert(player1Strategy) || isExpert(player2Strategy)) {
+    return 1;
+  }
+
+  // Hard difficulty still needs reduced concurrency
+  if (isHard(player1Strategy) || isHard(player2Strategy)) {
+    return 2;
+  }
+
+  // For medium and below, use higher concurrency
+  return 10;
+}
+
+/**
  * Run mass simulation with configurable concurrency
  */
 export async function runSimulation(
@@ -164,7 +199,7 @@ export async function runSimulation(
   const { numGames, player1Strategy, player2Strategy, onProgress, onGameComplete } =
     config;
   const results: SimulationResult[] = [];
-  const concurrency = 10; // Run 10 games in parallel
+  const concurrency = getConcurrency(player1Strategy, player2Strategy);
   let nextId = 0;
   let cancelled = false;
 
@@ -192,22 +227,33 @@ export async function runSimulation(
     }
 
     // Wait for batch to complete and process results
-    const batchResults = await Promise.all(batch);
+    // Use Promise.allSettled to handle any potential errors gracefully
+    const batchResults = await Promise.allSettled(batch);
     
     for (const result of batchResults) {
       if (checkCancelled()) break;
-      results.push(result);
       
-      // Call onGameComplete callback
-      onGameComplete?.(result);
-      
-      // Update stats and call progress callback
-      const stats = calculateStats(results, numGames);
-      onProgress?.(stats, result);
+      if (result.status === "fulfilled") {
+        results.push(result.value);
+        
+        // Call onGameComplete callback
+        onGameComplete?.(result.value);
+        
+        // Update stats and call progress callback
+        const stats = calculateStats(results, numGames);
+        onProgress?.(stats, result.value);
+      } else {
+        console.error("Simulation game failed:", result.reason);
+      }
     }
 
-    // Small delay to prevent blocking UI
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    // Yield control to UI thread between batches
+    // For hard/expert difficulties, add a small delay to give UI more breathing room
+    const isHardDifficulty = 
+      player1Strategy === "hard" || player1Strategy === "expert" ||
+      player2Strategy === "hard" || player2Strategy === "expert";
+    const delay = isHardDifficulty ? 10 : 0; // 10ms delay for hard/expert
+    await new Promise((resolve) => setTimeout(resolve, delay));
   }
 
   return results;
