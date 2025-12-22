@@ -1,65 +1,179 @@
-import Image from "next/image";
+"use client";
+
+import { Dices, GraduationCap, Sparkles, Swords, Users } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { DIFFICULTY_CONFIGS } from "@/engine";
+import type { DifficultyLevel } from "@/engine/types";
 
 export default function Home() {
+  const [difficulty, setDifficulty] = useState<DifficultyLevel>("medium");
+  const [trainingMode, setTrainingMode] = useState(false);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="min-h-screen flex flex-col items-center justify-center p-8">
+      {/* Title */}
+      <div className="text-center mb-12 animate-fade-in-up">
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <Dices className="w-12 h-12 text-accent" />
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-accent via-primary to-secondary bg-clip-text text-transparent">
+            Knucklebones
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        <p className="text-xl text-muted-foreground">
+          Master the dice game from Cult of the Lamb
+        </p>
+      </div>
+
+      {/* Game Mode Cards */}
+      <div className="grid md:grid-cols-2 gap-6 max-w-3xl w-full">
+        {/* VS AI */}
+        <Card className="relative overflow-hidden group hover:border-accent/50 transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Swords className="w-5 h-5 text-primary" />
+              Play vs AI
+            </CardTitle>
+            <CardDescription>
+              Challenge the computer at 5 difficulty levels
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Difficulty Select */}
+            <div className="space-y-2">
+              <Label>Difficulty</Label>
+              <Select
+                value={difficulty}
+                onValueChange={(v) => setDifficulty(v as DifficultyLevel)}
+              >
+                <SelectTrigger>
+                  <SelectValue>
+                    {DIFFICULTY_CONFIGS[difficulty].name}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent position="popper" sideOffset={4}>
+                  {Object.entries(DIFFICULTY_CONFIGS).map(([key, config]) => (
+                    <SelectItem key={key} value={key} className="py-2">
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium">{config.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {config.description}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {DIFFICULTY_CONFIGS[difficulty].description}
+              </p>
+            </div>
+
+            {/* Training Mode Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-accent" />
+                <Label htmlFor="training-mode">Training Mode</Label>
+              </div>
+              <Switch
+                id="training-mode"
+                checked={trainingMode}
+                onCheckedChange={setTrainingMode}
+              />
+            </div>
+            {trainingMode && (
+              <p className="text-xs text-muted-foreground">
+                Shows win probability for each move
+              </p>
+            )}
+
+            <Link
+              href={`/play?difficulty=${difficulty}&training=${trainingMode}`}
+              className="block"
+            >
+              <Button className="w-full" size="lg">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Start Game
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* Multiplayer */}
+        <Card className="relative overflow-hidden group hover:border-secondary/50 transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-secondary" />
+              Multiplayer
+            </CardTitle>
+            <CardDescription>Play against another human online</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Create a room and share the code with a friend, or join an
+              existing room.
+            </p>
+
+            <Link href="/multiplayer" className="block">
+              <Button variant="secondary" className="w-full" size="lg">
+                <Users className="mr-2 h-4 w-4" />
+                Enter Lobby
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Rules Summary */}
+      <Card className="mt-8 max-w-3xl w-full">
+        <CardHeader>
+          <CardTitle className="text-lg">How to Play</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li className="flex items-start gap-2">
+              <span className="text-accent font-bold">1.</span>
+              Roll the die and place it in one of your 3 columns
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-accent font-bold">2.</span>
+              Matching dice in a column multiply their score (2×2 or 3×3)
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-accent font-bold">3.</span>
+              Placing a die removes matching dice from opponent&apos;s column
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-accent font-bold">4.</span>
+              First to fill their grid ends the game - highest score wins!
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
+
+      {/* Footer */}
+      <footer className="mt-12 text-center text-sm text-muted-foreground">
+        <p>Inspired by Cult of the Lamb by Massive Monster</p>
+      </footer>
+    </main>
   );
 }
