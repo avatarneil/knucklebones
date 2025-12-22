@@ -99,6 +99,7 @@ export function GameBoard({
             canRoll={canRoll}
             onRoll={onRoll ?? (() => {})}
             playerName={isPlayer1Turn ? player1Name : player2Name}
+            isHuman={isCurrentPlayerHuman}
           />
         )}
 

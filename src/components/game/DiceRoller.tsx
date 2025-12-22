@@ -13,6 +13,7 @@ interface DiceRollerProps {
   canRoll: boolean;
   onRoll: () => void;
   playerName?: string;
+  isHuman?: boolean;
 }
 
 export function DiceRoller({
@@ -21,6 +22,7 @@ export function DiceRoller({
   canRoll,
   onRoll,
   playerName = "Player",
+  isHuman = true,
 }: DiceRollerProps) {
   const [displayValue, setDisplayValue] = useState<DieValue>(1);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -89,9 +91,11 @@ export function DiceRoller({
           <p className="text-[clamp(0.75rem,2vw,0.875rem)] text-muted-foreground">
             {playerName === "You" ? "Your turn" : `${playerName}'s turn`}
           </p>
-          <p className="text-[clamp(0.875rem,2.5vw,1.125rem)] font-semibold text-accent">
-            Choose a column
-          </p>
+          {isHuman && (
+            <p className="text-[clamp(0.875rem,2.5vw,1.125rem)] font-semibold text-accent">
+              Choose a column
+            </p>
+          )}
         </div>
       ) : (
         <div className="text-[clamp(0.75rem,2vw,0.875rem)] text-muted-foreground">
