@@ -22,6 +22,7 @@ export interface SimulationResult {
     column: number;
     state: GameState;
   }>;
+  finalState: GameState; // Final state after all moves
   player1Strategy: DifficultyLevel;
   player2Strategy: DifficultyLevel;
   completedAt: number;
@@ -107,6 +108,7 @@ async function simulateSingleGame(
     finalScore: scores,
     turnCount,
     moves,
+    finalState: JSON.parse(JSON.stringify(state)) as GameState, // Deep clone final state
     player1Strategy,
     player2Strategy,
     completedAt: Date.now(),
