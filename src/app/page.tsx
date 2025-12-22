@@ -42,6 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { ThemeSwitcherButton } from "@/components/ui/theme-switcher";
 import { DIFFICULTY_CONFIGS } from "@/engine";
 import type { DifficultyLevel } from "@/engine/types";
 import { useGameHistory } from "@/hooks/useGameHistory";
@@ -69,6 +70,10 @@ export default function Home() {
     <main className="min-h-[100dvh] flex flex-col items-center justify-center p-[clamp(1rem,3vw,2rem)] overflow-auto pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <OfflineIndicator />
       <InstallPrompt />
+      {/* Theme Switcher - Top Right */}
+      <div className="fixed top-[max(1rem,env(safe-area-inset-top))] right-[clamp(1rem,3vw,2rem)] z-50">
+        <ThemeSwitcherButton />
+      </div>
       {/* Title */}
       <div className="text-center mb-[clamp(1.5rem,4vw,3rem)] animate-fade-in-up">
         <div className="flex items-center justify-center gap-[clamp(0.5rem,1.5vw,0.75rem)] mb-[clamp(0.5rem,2vw,1rem)]">

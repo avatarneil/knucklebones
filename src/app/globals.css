@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
-/* Knucklebones Theme - Cult of the Lamb inspired */
+/* Theme system - CSS variables are set dynamically by ThemeContext */
+/* Default theme values (for SSR and initial load) */
 :root {
-  /* Core palette - warm, mystical tones */
+  /* Core palette - warm, mystical tones (Default theme) */
   --background: 30 20% 6%;
   --foreground: 40 30% 95%;
 
@@ -45,25 +46,6 @@
   --dice-4: 120 60% 40%;
   --dice-5: 200 70% 50%;
   --dice-6: 280 60% 50%;
-}
-
-/* Light theme option (for accessibility) */
-.light {
-  --background: 40 30% 96%;
-  --foreground: 30 30% 10%;
-  --card: 40 25% 98%;
-  --card-foreground: 30 30% 10%;
-  --muted: 40 20% 90%;
-  --muted-foreground: 30 15% 40%;
-  --accent: 38 90% 50%;
-  --accent-foreground: 30 30% 10%;
-  --primary: 0 70% 50%;
-  --primary-foreground: 40 30% 98%;
-  --secondary: 280 45% 50%;
-  --secondary-foreground: 40 30% 98%;
-  --border: 40 20% 85%;
-  --input: 40 20% 92%;
-  --ring: 38 90% 50%;
 }
 
 @theme inline {

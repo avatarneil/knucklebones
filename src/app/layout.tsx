@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ServiceWorkerRegistration } from "@/components/pwa";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
@@ -55,8 +56,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ServiceWorkerRegistration />
-        <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
+        <ThemeProvider>
+          <ServiceWorkerRegistration />
+          <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
