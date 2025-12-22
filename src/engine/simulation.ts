@@ -4,8 +4,10 @@
  * Runs multiple games in parallel and tracks results
  */
 
-import { applyMove, createInitialState, getAIMove, rollDie } from "./moves";
+import { getAIMove } from "./ai";
+import { applyMove, rollDie } from "./moves";
 import { calculateGridScore } from "./scorer";
+import { createInitialState } from "./state";
 import type { DifficultyLevel, GameState, Player } from "./types";
 
 export interface SimulationResult {
