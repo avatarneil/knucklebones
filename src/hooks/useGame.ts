@@ -133,8 +133,8 @@ export function useGame(options: UseGameOptions): UseGameReturn {
 
       // Determine which difficulty to use
       const currentDifficulty = 
-        (isPlayer1AI && options.player1Difficulty) || 
-        ((isPlayer2AI || isPlayer2AIVsAI) && (options.player2Difficulty || difficulty)) ||
+        (isPlayer1AI && (options.player1Difficulty ?? difficulty)) || 
+        ((isPlayer2AI || isPlayer2AIVsAI) && (options.player2Difficulty ?? difficulty)) ||
         difficulty;
 
       // AI turn with delay for better UX
@@ -198,7 +198,7 @@ export function useGame(options: UseGameOptions): UseGameReturn {
         }
       }, 500);
     },
-    [options, difficulty, isTrainingMode, runMoveAnalysis],
+    [options.mode, options.player1Difficulty, options.player2Difficulty, difficulty, isTrainingMode, runMoveAnalysis],
   );
 
   // Trigger AI moves when it's an AI player's turn

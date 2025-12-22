@@ -102,18 +102,56 @@ function AIVsAIContent() {
         </div>
       </header>
 
-      {/* Strategy indicators */}
+      {/* Strategy indicators with inline controls */}
       <div className="text-center mb-[clamp(0.25rem,1vw,0.5rem)] flex-shrink-0">
-        <div className="flex items-center justify-center gap-4 text-[clamp(0.75rem,2vw,0.875rem)] text-muted-foreground">
-          <span>
-            <span className="text-accent font-medium">Player 1:</span>{" "}
-            {DIFFICULTY_CONFIGS[player1Difficulty].name}
-          </span>
+        <div className="flex items-center justify-center gap-2 md:gap-4 flex-wrap text-[clamp(0.75rem,2vw,0.875rem)]">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Player 1:</span>
+            <Select
+              value={player1Difficulty}
+              onValueChange={(v) => setPlayer1Difficulty(v as DifficultyLevel)}
+            >
+              <SelectTrigger className="h-7 w-[120px] md:w-[140px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(DIFFICULTY_CONFIGS).map(([key, config]) => (
+                  <SelectItem key={key} value={key}>
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium">{config.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {config.description}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <span className="text-muted-foreground">vs</span>
-          <span>
-            <span className="text-secondary font-medium">Player 2:</span>{" "}
-            {DIFFICULTY_CONFIGS[player2Difficulty].name}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Player 2:</span>
+            <Select
+              value={player2Difficulty}
+              onValueChange={(v) => setPlayer2Difficulty(v as DifficultyLevel)}
+            >
+              <SelectTrigger className="h-7 w-[120px] md:w-[140px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(DIFFICULTY_CONFIGS).map(([key, config]) => (
+                  <SelectItem key={key} value={key}>
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium">{config.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {config.description}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -197,21 +235,13 @@ function AIVsAIContent() {
             </div>
 
             <p className="text-xs text-muted-foreground pt-2 border-t">
-              Note: Changing strategies will start a new game
+              Changes apply immediately to future moves in the current game
             </p>
           </div>
 
           <DialogFooter>
-            <Button
-              onClick={() => {
-                setShowSettings(false);
-                handleNewGame();
-              }}
-            >
-              Apply & New Game
-            </Button>
-            <Button variant="outline" onClick={() => setShowSettings(false)}>
-              Cancel
+            <Button onClick={() => setShowSettings(false)}>
+              Done
             </Button>
           </DialogFooter>
         </DialogContent>
