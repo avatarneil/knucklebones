@@ -15,9 +15,15 @@ const THEME_STORAGE_KEY = "knuckletrainer-theme";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemeId>(() => {
-    if (typeof window === "undefined") return "default";
+    if (typeof window === "undefined") return "cult-of-the-lamb";
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    return (stored as ThemeId) || "default";
+    if (!stored) return "cult-of-the-lamb";
+    // Migrate old "default" theme to "legacy"
+    if (stored === "default") {
+      localStorage.setItem(THEME_STORAGE_KEY, "legacy");
+      return "legacy";
+    }
+    return (stored as ThemeId) || "cult-of-the-lamb";
   });
 
   const setTheme = (newTheme: ThemeId) => {

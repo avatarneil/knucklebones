@@ -1,45 +1,79 @@
 "use client";
 
 import { Palette } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import type { ThemeId } from "@/lib/themes";
 import { themes } from "@/lib/themes";
 import { Button } from "./button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./select";
+import { cn } from "@/lib/utils";
 
 export function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [open]);
 
   return (
-    <div className="flex items-center gap-2">
-      <Palette className="w-4 h-4 text-muted-foreground" />
-      <Select value={theme} onValueChange={(v) => setTheme(v as ThemeId)}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue>
-            <span className="flex items-center gap-2">
-              {themes[theme].name}
-            </span>
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {Object.values(themes).map((t) => (
-            <SelectItem key={t.id} value={t.id}>
-              <div className="flex flex-col items-start">
-                <span className="font-medium">{t.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {t.description}
-                </span>
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+    <div ref={containerRef} className="relative">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setOpen(!open)}
+        title="Select theme"
+        aria-label="Select theme"
+        aria-expanded={open}
+      >
+        <Palette className="w-4 h-4" />
+        <span className="sr-only">Select theme</span>
+      </Button>
+      {open && (
+        <div
+          className={cn(
+            "absolute right-0 top-full mt-2 z-50 min-w-[200px] rounded-lg border border-border bg-card shadow-lg",
+            "animate-in fade-in-0 zoom-in-95 slide-in-from-top-2"
+          )}
+        >
+          <div className="p-1">
+            {Object.values(themes).map((t) => (
+              <button
+                key={t.id}
+                onClick={() => {
+                  setTheme(t.id);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "w-full text-left rounded-md px-2 py-1.5 text-sm transition-colors",
+                  "hover:bg-muted focus:bg-muted focus:outline-none",
+                  theme === t.id && "bg-muted font-medium"
+                )}
+              >
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">{t.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {t.description}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

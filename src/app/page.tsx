@@ -42,7 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ThemeSwitcherButton } from "@/components/ui/theme-switcher";
+import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { DIFFICULTY_CONFIGS } from "@/engine";
 import type { DifficultyLevel } from "@/engine/types";
 import { useGameHistory } from "@/hooks/useGameHistory";
@@ -72,7 +72,7 @@ export default function Home() {
       <InstallPrompt />
       {/* Theme Switcher - Top Right */}
       <div className="fixed top-[max(1rem,env(safe-area-inset-top))] right-[clamp(1rem,3vw,2rem)] z-50">
-        <ThemeSwitcherButton />
+        <ThemeSwitcher />
       </div>
       {/* Title */}
       <div className="text-center mb-[clamp(1.5rem,4vw,3rem)] animate-fade-in-up">
