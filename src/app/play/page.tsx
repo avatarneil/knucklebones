@@ -3,13 +3,16 @@
 import {
   ArrowLeft,
   GraduationCap,
+  History,
+  Play,
   RotateCcw,
   Settings,
+  Trash2,
   Trophy,
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { GameBoard } from "@/components/game";
 import { WinProbability } from "@/components/training";
 import { Button } from "@/components/ui/button";
@@ -30,9 +33,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { DIFFICULTY_CONFIGS } from "@/engine";
-import type { ColumnIndex, DifficultyLevel } from "@/engine/types";
+import { createInitialState, DIFFICULTY_CONFIGS } from "@/engine";
+import type { ColumnIndex, DifficultyLevel, GameState } from "@/engine/types";
 import { useGame } from "@/hooks/useGame";
+import { useGameHistory } from "@/hooks/useGameHistory";
+import { gameStorage } from "@/lib/game-storage";
 
 function PlayContent() {
   const searchParams = useSearchParams();
@@ -42,30 +47,223 @@ function PlayContent() {
 
   const [showSettings, setShowSettings] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
+  const [showResumeDialog, setShowResumeDialog] = useState(false);
+  const [pendingSavedSession, setPendingSavedSession] = useState<ReturnType<typeof gameStorage.loadSession>>(null);
   const [lastWinner, setLastWinner] = useState<
     "player1" | "player2" | "draw" | null
   >(null);
+
+  // Game history hook for persistence
+  const gameHistory = useGameHistory();
+
+  // Track current session ID
+  const sessionIdRef = useRef<string | null>(null);
+  const hasCheckedResume = useRef(false);
+  // Track current state for callbacks
+  const latestStateRef = useRef<GameState | null>(null);
+
+  // Game state - may be initialized from saved session
+  const [gameInitialState, setGameInitialState] = useState<
+    GameState | undefined
+  >(undefined);
+  const [gameDifficulty, setGameDifficulty] =
+    useState<DifficultyLevel>(initialDifficulty);
+  const [gameTrainingMode, setGameTrainingMode] = useState(initialTraining);
+  const [isReady, setIsReady] = useState(false);
+  // Key to force remount of game hook when starting fresh or resuming
+  const [gameKey, setGameKey] = useState(0);
+
+  const startNewSession = useCallback(() => {
+    const newState = createInitialState();
+    const sessionId = gameHistory.startSession({
+      mode: "ai",
+      difficulty: gameDifficulty,
+      trainingMode: gameTrainingMode,
+      initialState: newState,
+    });
+    sessionIdRef.current = sessionId;
+    latestStateRef.current = newState;
+    setGameInitialState(newState);
+    setGameKey((k) => k + 1); // Force remount of game hook
+    setIsReady(true);
+  }, [gameHistory, gameDifficulty, gameTrainingMode]);
+
+  // Check for saved game on mount - directly check storage to avoid race condition
+  useEffect(() => {
+    if (hasCheckedResume.current) return;
+    hasCheckedResume.current = true;
+
+    // Directly check storage instead of relying on state (which loads async)
+    const saved = gameStorage.loadSession();
+    if (saved && saved.state.phase !== "ended") {
+      // There's a saved game - ask user if they want to resume
+      setPendingSavedSession(saved);
+      setShowResumeDialog(true);
+    } else {
+      // No saved game - start fresh
+      startNewSession();
+    }
+  }, [startNewSession]);
+
+  const handleResume = useCallback(() => {
+    // Use the pending saved session
+    if (pendingSavedSession) {
+      sessionIdRef.current = pendingSavedSession.id;
+      latestStateRef.current = pendingSavedSession.state;
+      setGameInitialState(pendingSavedSession.state);
+      setGameDifficulty(pendingSavedSession.difficulty);
+      setGameTrainingMode(pendingSavedSession.trainingMode);
+      setGameKey((k) => k + 1); // Force remount of game hook
+    }
+    setShowResumeDialog(false);
+    setPendingSavedSession(null);
+    setIsReady(true);
+  }, [pendingSavedSession]);
+
+  const handleDiscardAndNew = useCallback(() => {
+    gameHistory.discardGame();
+    setShowResumeDialog(false);
+    setPendingSavedSession(null);
+    startNewSession();
+  }, [gameHistory, startNewSession]);
+
+  const handleStateChange = useCallback(
+    (state: GameState) => {
+      // Track latest state for callbacks
+      latestStateRef.current = state;
+      // Auto-save on every state change
+      if (sessionIdRef.current && state.phase !== "ended") {
+        gameHistory.saveGame(sessionIdRef.current, state);
+      }
+    },
+    [gameHistory],
+  );
 
   const handleGameEnd = useCallback(
     (winner: "player1" | "player2" | "draw") => {
       setLastWinner(winner);
       setShowGameOver(true);
+
+      // Record to history using the latest state ref
+      if (sessionIdRef.current && latestStateRef.current) {
+        gameHistory.recordGameEnd(
+          sessionIdRef.current,
+          latestStateRef.current,
+          winner,
+        );
+      }
     },
-    [],
+    [gameHistory],
   );
 
   const game = useGame({
     mode: "ai",
-    difficulty: initialDifficulty,
-    trainingMode: initialTraining,
+    difficulty: gameDifficulty,
+    trainingMode: gameTrainingMode,
+    initialState: gameInitialState,
     onGameEnd: handleGameEnd,
+    onStateChange: handleStateChange,
   });
 
-  const handleNewGame = () => {
+  const handleNewGame = useCallback(() => {
+    // Clear old session if it exists and wasn't recorded
+    if (sessionIdRef.current) {
+      gameHistory.discardGame();
+    }
+
+    // Reset game
     game.resetGame();
     setShowGameOver(false);
     setLastWinner(null);
+
+    // Start new session
+    const newState = createInitialState();
+    const sessionId = gameHistory.startSession({
+      mode: "ai",
+      difficulty: game.difficulty,
+      trainingMode: game.isTrainingMode,
+      initialState: newState,
+    });
+    sessionIdRef.current = sessionId;
+  }, [game, gameHistory]);
+
+  // Format time for display
+  const formatTimeSince = (timestamp: number): string => {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    if (seconds < 60) return "just now";
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
   };
+
+  // Show loading until we've checked for resume
+  if (!isReady) {
+    return (
+      <main className="h-[100dvh] flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+
+        {/* Resume Dialog */}
+        <Dialog open={showResumeDialog} onOpenChange={() => {}}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <History className="w-5 h-5 text-accent" />
+                Resume Game?
+              </DialogTitle>
+              <DialogDescription>
+                You have an unfinished game from{" "}
+                {pendingSavedSession
+                  ? formatTimeSince(pendingSavedSession.lastPlayedAt)
+                  : "earlier"}
+                . Would you like to continue where you left off?
+              </DialogDescription>
+            </DialogHeader>
+
+            {pendingSavedSession && (
+              <div className="py-4 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Difficulty:</span>
+                  <span className="font-medium">
+                    {DIFFICULTY_CONFIGS[pendingSavedSession.difficulty].name}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Turn:</span>
+                  <span className="font-medium">
+                    {pendingSavedSession.state.turnNumber}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Training Mode:</span>
+                  <span className="font-medium">
+                    {pendingSavedSession.trainingMode ? "On" : "Off"}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter className="flex gap-2 sm:gap-2">
+              <Button
+                variant="outline"
+                onClick={handleDiscardAndNew}
+                className="flex-1"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                New Game
+              </Button>
+              <Button onClick={handleResume} className="flex-1">
+                <Play className="mr-2 h-4 w-4" />
+                Resume
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </main>
+    );
+  }
 
   return (
     <main className="h-[100dvh] flex flex-col p-[clamp(0.5rem,2vw,1.5rem)] overflow-hidden pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))]">

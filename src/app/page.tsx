@@ -3,10 +3,14 @@
 import {
   Dices,
   GraduationCap,
+  History,
+  Play,
   Sparkles,
   Swords,
+  Trophy,
   Users,
   WifiOff,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -30,12 +34,25 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { DIFFICULTY_CONFIGS } from "@/engine";
 import type { DifficultyLevel } from "@/engine/types";
+import { useGameHistory } from "@/hooks/useGameHistory";
 import { useOnlineStatus } from "@/hooks/usePWA";
 
 export default function Home() {
   const [difficulty, setDifficulty] = useState<DifficultyLevel>("medium");
   const [trainingMode, setTrainingMode] = useState(false);
   const isOnline = useOnlineStatus();
+  const gameHistory = useGameHistory();
+
+  const formatTimeAgo = (timestamp: number): string => {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    if (seconds < 60) return "just now";
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
 
   return (
     <main className="min-h-[100dvh] flex flex-col items-center justify-center p-[clamp(1rem,3vw,2rem)] overflow-auto pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -53,6 +70,79 @@ export default function Home() {
           Master Knucklebones - the dice game from Cult of the Lamb
         </p>
       </div>
+
+      {/* Stats Bar - Only show if there's history */}
+      {gameHistory.stats.totalGames > 0 && (
+        <div className="flex items-center justify-center gap-4 mb-4 text-sm">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card/50 border border-border/50">
+            <Trophy className="w-4 h-4 text-accent" />
+            <span className="text-muted-foreground">
+              <span className="font-medium text-green-500">
+                {gameHistory.stats.wins}W
+              </span>
+              {" / "}
+              <span className="font-medium text-red-500">
+                {gameHistory.stats.losses}L
+              </span>
+              {gameHistory.stats.draws > 0 && (
+                <>
+                  {" / "}
+                  <span className="font-medium text-muted-foreground">
+                    {gameHistory.stats.draws}D
+                  </span>
+                </>
+              )}
+            </span>
+          </div>
+          <div className="text-muted-foreground">
+            <span className="font-medium">
+              {Math.round(gameHistory.stats.winRate * 100)}%
+            </span>{" "}
+            win rate
+          </div>
+        </div>
+      )}
+
+      {/* Resume Game Card - Show if there's a saved game */}
+      {gameHistory.hasSavedGame && gameHistory.savedSession && (
+        <Card className="mb-4 max-w-[min(48rem,90vw)] w-full border-accent/50 bg-gradient-to-r from-accent/5 to-transparent">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-accent/10">
+                  <History className="w-5 h-5 text-accent" />
+                </div>
+                <div>
+                  <p className="font-medium">Game in Progress</p>
+                  <p className="text-sm text-muted-foreground">
+                    vs {DIFFICULTY_CONFIGS[gameHistory.savedSession.difficulty].name} AI
+                    {" · "}
+                    Turn {gameHistory.savedSession.state.turnNumber}
+                    {" · "}
+                    {formatTimeAgo(gameHistory.savedSession.lastPlayedAt)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  onClick={() => gameHistory.discardGame()}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+                <Link href="/play">
+                  <Button size="sm">
+                    <Play className="mr-1.5 h-4 w-4" />
+                    Resume
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Game Mode Cards */}
       <div className="grid md:grid-cols-2 gap-[clamp(1rem,3vw,1.5rem)] max-w-[min(48rem,90vw)] w-full">
@@ -123,7 +213,7 @@ export default function Home() {
             >
               <Button className="w-full" size="lg">
                 <Sparkles className="mr-2 h-4 w-4" />
-                Start Game
+                {gameHistory.hasSavedGame ? "New Game" : "Start Game"}
               </Button>
             </Link>
           </CardContent>
@@ -175,6 +265,85 @@ export default function Home() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Recent Games History */}
+      {gameHistory.history.length > 0 && (
+        <details className="mt-[clamp(1rem,3vw,2rem)] max-w-[min(48rem,90vw)] w-full group">
+          <summary className="cursor-pointer list-none">
+            <Card className="transition-all group-open:rounded-b-none">
+              <CardHeader className="py-[clamp(0.75rem,2vw,1.5rem)]">
+                <CardTitle className="text-[clamp(1rem,2.5vw,1.125rem)] flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <History className="w-4 h-4" />
+                    Recent Games
+                    <span className="text-sm font-normal text-muted-foreground">
+                      ({gameHistory.history.length})
+                    </span>
+                  </span>
+                  <span className="text-muted-foreground text-sm group-open:rotate-180 transition-transform">
+                    ▼
+                  </span>
+                </CardTitle>
+              </CardHeader>
+            </Card>
+          </summary>
+          <Card className="rounded-t-none border-t-0">
+            <CardContent className="pt-0 pb-[clamp(1rem,2vw,1.5rem)]">
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {gameHistory.history.slice(0, 10).map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/30 text-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          entry.winner === "player1"
+                            ? "bg-green-500"
+                            : entry.winner === "player2"
+                              ? "bg-red-500"
+                              : "bg-muted-foreground"
+                        }`}
+                      />
+                      <span
+                        className={`font-medium ${
+                          entry.winner === "player1"
+                            ? "text-green-500"
+                            : entry.winner === "player2"
+                              ? "text-red-500"
+                              : "text-muted-foreground"
+                        }`}
+                      >
+                        {entry.winner === "player1"
+                          ? "Won"
+                          : entry.winner === "player2"
+                            ? "Lost"
+                            : "Draw"}
+                      </span>
+                      <span className="text-muted-foreground">
+                        vs {DIFFICULTY_CONFIGS[entry.difficulty].name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <span>
+                        {entry.finalScore.player1} - {entry.finalScore.player2}
+                      </span>
+                      <span className="text-xs">
+                        {formatTimeAgo(entry.endedAt)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {gameHistory.history.length > 10 && (
+                <p className="text-center text-xs text-muted-foreground mt-2">
+                  Showing 10 of {gameHistory.history.length} games
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </details>
+      )}
 
       {/* Rules Summary - collapsible on mobile */}
       <details className="mt-[clamp(1rem,3vw,2rem)] max-w-[min(48rem,90vw)] w-full group">
