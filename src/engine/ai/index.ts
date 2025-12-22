@@ -12,6 +12,8 @@ import {
 } from "./difficulty";
 import { evaluate, evaluateMoveQuick } from "./evaluation";
 import { clearTranspositionTable, getBestMove } from "./expectimax";
+import { ALL_COLUMNS } from "../types";
+import { isColumnFull } from "../scorer";
 
 export { DIFFICULTY_CONFIGS, getDifficultyConfig, getAllDifficultyLevels };
 export { clearTranspositionTable };
@@ -51,8 +53,36 @@ export class AIPlayer {
    * Choose a move for the current game state
    */
   chooseMove(state: GameState): ColumnIndex | null {
-    const config = getDifficultyConfig(this.difficulty);
-    return getBestMove(state, config);
+    try {
+      const config = getDifficultyConfig(this.difficulty);
+      const move = getBestMove(state, config);
+      
+      // Fallback: if expectimax fails, use a simple heuristic
+      if (move === null && state.phase === "placing" && state.currentDie !== null) {
+        const grid = state.grids[state.currentPlayer];
+        const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(grid[i]));
+        if (legalColumns.length > 0) {
+          // Use quick evaluation to pick best column
+          const scored = legalColumns.map((col) => ({
+            col,
+            score: evaluateMoveQuick(state, col, state.currentDie!, state.currentPlayer),
+          }));
+          scored.sort((a, b) => b.score - a.score);
+          return scored[0]?.col ?? legalColumns[0];
+        }
+      }
+      
+      return move;
+    } catch (error) {
+      console.error("Error computing AI move:", error);
+      // Fallback to first legal move
+      if (state.phase === "placing" && state.currentDie !== null) {
+        const grid = state.grids[state.currentPlayer];
+        const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(grid[i]));
+        return legalColumns[0] ?? null;
+      }
+      return null;
+    }
   }
 
   /**
@@ -100,6 +130,34 @@ export function getAIMove(
   state: GameState,
   difficulty: DifficultyLevel = "medium",
 ): ColumnIndex | null {
-  const config = getDifficultyConfig(difficulty);
-  return getBestMove(state, config);
+  try {
+    const config = getDifficultyConfig(difficulty);
+    const move = getBestMove(state, config);
+    
+    // Fallback: if expectimax fails, use a simple heuristic
+    if (move === null && state.phase === "placing" && state.currentDie !== null) {
+      const grid = state.grids[state.currentPlayer];
+      const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(grid[i]));
+      if (legalColumns.length > 0) {
+        // Use quick evaluation to pick best column
+        const scored = legalColumns.map((col) => ({
+          col,
+          score: evaluateMoveQuick(state, col, state.currentDie!, state.currentPlayer),
+        }));
+        scored.sort((a, b) => b.score - a.score);
+        return scored[0]?.col ?? legalColumns[0];
+      }
+    }
+    
+    return move;
+  } catch (error) {
+    console.error("Error computing AI move:", error);
+    // Fallback to first legal move
+    if (state.phase === "placing" && state.currentDie !== null) {
+      const grid = state.grids[state.currentPlayer];
+      const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(grid[i]));
+      return legalColumns[0] ?? null;
+    }
+    return null;
+  }
 }

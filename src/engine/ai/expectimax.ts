@@ -28,6 +28,9 @@ export interface ExpectimaxResult {
 /** Cache for transposition table */
 const transpositionTable = new Map<string, { depth: number; value: number }>();
 
+/** Maximum nodes to explore before timing out (prevents freezing) */
+const MAX_NODES = 500000; // Reasonable limit for expert mode depth 6
+
 /**
  * Clear the transposition table (call between games)
  */
@@ -78,6 +81,11 @@ function maxNode(
   nodesExplored: { count: number },
 ): number {
   nodesExplored.count++;
+
+  // Safety check: prevent runaway searches
+  if (nodesExplored.count > MAX_NODES) {
+    return evaluate(state, player, config);
+  }
 
   // Terminal check
   if (state.phase === "ended" || depth === 0) {
@@ -149,6 +157,11 @@ function minNode(
 ): number {
   nodesExplored.count++;
 
+  // Safety check: prevent runaway searches
+  if (nodesExplored.count > MAX_NODES) {
+    return evaluate(state, player, config);
+  }
+
   // Terminal check
   if (state.phase === "ended" || depth === 0) {
     return evaluate(state, player, config);
@@ -214,6 +227,11 @@ function chanceNode(
   nodesExplored: { count: number },
 ): number {
   nodesExplored.count++;
+
+  // Safety check: prevent runaway searches
+  if (nodesExplored.count > MAX_NODES) {
+    return evaluate(state, player, config);
+  }
 
   if (state.phase !== "rolling") {
     // Not a chance node

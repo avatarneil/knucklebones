@@ -69,7 +69,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
   expert: {
     name: "Expert",
     description: "Maximum depth, perfect evaluation",
-    depth: 6,
+    depth: 5,
     randomness: 0,
     considerOpponent: true,
     offenseWeight: 0.5,
