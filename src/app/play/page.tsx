@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { GameBoard } from "@/components/game";
+import { InstallPrompt } from "@/components/pwa";
 import { WinProbability } from "@/components/training";
 import { Button } from "@/components/ui/button";
 import {
@@ -267,6 +268,7 @@ function PlayContent() {
 
   return (
     <main className="h-[100dvh] flex flex-col p-[clamp(0.5rem,2vw,1.5rem)] overflow-hidden pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <InstallPrompt />
       {/* Header */}
       <header className="flex items-center justify-between mb-[clamp(0.5rem,1.5vw,1rem)] flex-shrink-0">
         <Link href="/">

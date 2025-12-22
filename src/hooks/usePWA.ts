@@ -18,7 +18,8 @@ declare global {
 }
 
 const INSTALL_DISMISSED_KEY = "pwa-install-dismissed";
-const VISIT_COUNT_KEY = "pwa-visit-count";
+const SHOW_DELAY_MS = 2000; // 2 second delay before showing
+const AUTO_DISMISS_MS = 30000; // Auto-dismiss after 30 seconds
 
 export function useInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] =
@@ -37,23 +38,28 @@ export function useInstallPrompt() {
       return;
     }
 
-    // Track visits - only show install prompt after 2nd visit
-    const visitCount = Number.parseInt(
-      localStorage.getItem(VISIT_COUNT_KEY) || "0",
-      10,
-    );
-    localStorage.setItem(VISIT_COUNT_KEY, String(visitCount + 1));
-
     // Check if user dismissed the prompt
     const dismissed = localStorage.getItem(INSTALL_DISMISSED_KEY);
-    const shouldShowPrompt = visitCount >= 1 && !dismissed;
+    const shouldShowPrompt = !dismissed;
+
+    let showTimeout: ReturnType<typeof setTimeout>;
+    let autoDismissTimeout: ReturnType<typeof setTimeout>;
 
     const handleBeforeInstallPrompt = (e: BeforeInstallPromptEvent) => {
       e.preventDefault();
       setDeferredPrompt(e);
       setCanInstall(true);
+      
       if (shouldShowPrompt) {
-        setShowPrompt(true);
+        // Show after a delay to let users see the page first
+        showTimeout = setTimeout(() => {
+          setShowPrompt(true);
+          
+          // Auto-dismiss after 30 seconds if not interacted with
+          autoDismissTimeout = setTimeout(() => {
+            setShowPrompt(false);
+          }, AUTO_DISMISS_MS);
+        }, SHOW_DELAY_MS);
       }
     };
 
@@ -62,6 +68,8 @@ export function useInstallPrompt() {
       setCanInstall(false);
       setShowPrompt(false);
       setDeferredPrompt(null);
+      clearTimeout(showTimeout);
+      clearTimeout(autoDismissTimeout);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -73,6 +81,8 @@ export function useInstallPrompt() {
         handleBeforeInstallPrompt,
       );
       window.removeEventListener("appinstalled", handleAppInstalled);
+      clearTimeout(showTimeout);
+      clearTimeout(autoDismissTimeout);
     };
   }, []);
 

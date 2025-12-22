@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { GameBoard } from "@/components/game";
+import { InstallPrompt } from "@/components/pwa";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -144,6 +145,7 @@ export default function MultiplayerPage() {
   if (lobbyState === "menu") {
     return (
       <main className="h-[100dvh] flex flex-col items-center justify-center p-4 sm:p-8 overflow-hidden pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <InstallPrompt />
         <Link href="/" className="absolute top-2 sm:top-4 left-2 sm:left-4">
           <Button variant="ghost" size="sm" className="px-2 sm:px-3">
             <ArrowLeft className="h-4 w-4" />
@@ -262,6 +264,7 @@ export default function MultiplayerPage() {
   if (lobbyState === "waiting" || lobbyState === "creating") {
     return (
       <main className="h-[100dvh] flex flex-col items-center justify-center p-4 sm:p-8 overflow-hidden pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <InstallPrompt />
         <Card className="w-full max-w-md">
           <CardHeader className="text-center py-4 sm:py-6">
             <CardTitle className="text-lg sm:text-xl">
@@ -333,6 +336,7 @@ export default function MultiplayerPage() {
 
   return (
     <main className="h-[100dvh] flex flex-col p-2 sm:p-4 md:p-6 overflow-hidden pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <InstallPrompt />
       {/* Header */}
       <header className="flex items-center justify-between mb-2 sm:mb-4 flex-shrink-0">
         <Button
