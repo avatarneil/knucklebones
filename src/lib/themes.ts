@@ -2,7 +2,7 @@
  * Theme definitions for the application
  */
 
-export type ThemeId = "default" | "cult-of-the-lamb";
+export type ThemeId = "legacy" | "cult-of-the-lamb" | "dark" | "light" | "ocean" | "forest";
 
 export interface Theme {
   id: ThemeId;
@@ -36,11 +36,11 @@ export interface Theme {
 }
 
 /**
- * Default theme - the original KnuckleTrainer theme
+ * Legacy theme - the original KnuckleTrainer theme
  */
-export const defaultTheme: Theme = {
-  id: "default",
-  name: "Default",
+export const legacyTheme: Theme = {
+  id: "legacy",
+  name: "Legacy",
   description: "The original KnuckleTrainer theme",
   colors: {
     background: "30 20% 6%",
@@ -104,9 +104,149 @@ export const cultOfTheLambTheme: Theme = {
   },
 };
 
+/**
+ * Dark theme - modern dark mode with cool tones
+ */
+export const darkTheme: Theme = {
+  id: "dark",
+  name: "Dark",
+  description: "Modern dark mode with cool blue tones",
+  colors: {
+    background: "220 20% 8%",
+    foreground: "220 10% 95%",
+    card: "220 15% 12%",
+    cardForeground: "220 10% 95%",
+    muted: "220 10% 20%",
+    mutedForeground: "220 5% 65%",
+    accent: "220 90% 60%",
+    accentForeground: "220 20% 8%",
+    primary: "210 90% 55%",
+    primaryForeground: "220 10% 98%",
+    secondary: "240 50% 45%",
+    secondaryForeground: "220 10% 95%",
+    destructive: "0 85% 60%",
+    destructiveForeground: "220 10% 98%",
+    border: "220 15% 25%",
+    input: "220 15% 15%",
+    ring: "220 90% 60%",
+    dice1: "0 80% 55%",
+    dice2: "30 85% 55%",
+    dice3: "50 90% 55%",
+    dice4: "150 60% 45%",
+    dice5: "200 75% 55%",
+    dice6: "270 70% 60%",
+  },
+};
+
+/**
+ * Light theme - clean and bright
+ */
+export const lightTheme: Theme = {
+  id: "light",
+  name: "Light",
+  description: "Clean and bright light mode",
+  colors: {
+    background: "0 0% 98%",
+    foreground: "220 20% 10%",
+    card: "0 0% 100%",
+    cardForeground: "220 20% 10%",
+    muted: "220 10% 95%",
+    mutedForeground: "220 10% 40%",
+    accent: "220 90% 50%",
+    accentForeground: "0 0% 98%",
+    primary: "210 90% 50%",
+    primaryForeground: "0 0% 98%",
+    secondary: "240 30% 85%",
+    secondaryForeground: "220 20% 10%",
+    destructive: "0 85% 55%",
+    destructiveForeground: "0 0% 98%",
+    border: "220 10% 85%",
+    input: "220 10% 90%",
+    ring: "220 90% 50%",
+    dice1: "0 80% 50%",
+    dice2: "30 85% 50%",
+    dice3: "50 90% 50%",
+    dice4: "150 60% 40%",
+    dice5: "200 75% 50%",
+    dice6: "270 70% 55%",
+  },
+};
+
+/**
+ * Ocean theme - deep blues and teals
+ */
+export const oceanTheme: Theme = {
+  id: "ocean",
+  name: "Ocean",
+  description: "Deep blues and teals like the ocean depths",
+  colors: {
+    background: "200 40% 8%",
+    foreground: "200 20% 95%",
+    card: "200 35% 12%",
+    cardForeground: "200 20% 95%",
+    muted: "200 25% 20%",
+    mutedForeground: "200 15% 65%",
+    accent: "190 90% 60%",
+    accentForeground: "200 40% 8%",
+    primary: "200 85% 55%",
+    primaryForeground: "200 20% 98%",
+    secondary: "180 60% 45%",
+    secondaryForeground: "200 20% 95%",
+    destructive: "0 85% 60%",
+    destructiveForeground: "200 20% 98%",
+    border: "200 30% 25%",
+    input: "200 30% 15%",
+    ring: "190 90% 60%",
+    dice1: "0 80% 55%",
+    dice2: "30 85% 55%",
+    dice3: "50 90% 55%",
+    dice4: "160 70% 50%",
+    dice5: "200 80% 60%",
+    dice6: "220 75% 55%",
+  },
+};
+
+/**
+ * Forest theme - greens and earth tones
+ */
+export const forestTheme: Theme = {
+  id: "forest",
+  name: "Forest",
+  description: "Natural greens and warm earth tones",
+  colors: {
+    background: "140 30% 8%",
+    foreground: "140 20% 95%",
+    card: "140 25% 12%",
+    cardForeground: "140 20% 95%",
+    muted: "140 20% 20%",
+    mutedForeground: "140 15% 65%",
+    accent: "140 80% 50%",
+    accentForeground: "140 30% 8%",
+    primary: "120 70% 45%",
+    primaryForeground: "140 20% 98%",
+    secondary: "30 60% 45%",
+    secondaryForeground: "140 20% 95%",
+    destructive: "0 85% 60%",
+    destructiveForeground: "140 20% 98%",
+    border: "140 25% 25%",
+    input: "140 25% 15%",
+    ring: "140 80% 50%",
+    dice1: "0 80% 55%",
+    dice2: "30 85% 55%",
+    dice3: "50 90% 55%",
+    dice4: "140 70% 50%",
+    dice5: "160 70% 50%",
+    dice6: "180 70% 50%",
+  },
+};
+
 export const themes: Record<ThemeId, Theme> = {
-  default: defaultTheme,
+  legacy: legacyTheme,
   "cult-of-the-lamb": cultOfTheLambTheme,
+  dark: darkTheme,
+  light: lightTheme,
+  ocean: oceanTheme,
+  forest: forestTheme,
 };
 
 export const themeIds: ThemeId[] = Object.keys(themes) as ThemeId[];
