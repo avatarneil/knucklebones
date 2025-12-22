@@ -150,58 +150,118 @@ export function useGame(options: UseGameOptions): UseGameReturn {
           currentState = rollDie(currentState);
           setState(currentState);
 
-          // Place after short delay
-          setTimeout(() => {
+          // Place after short delay - use async AI computation
+          setTimeout(async () => {
             setIsRolling(false);
-            const move = getAIMove(currentState, currentDifficulty);
-            if (move !== null) {
-              const result = applyMove(currentState, move);
-              if (result) {
-                setState(result.newState);
-                isProcessingAITurn.current = false;
-                setIsThinking(false);
-                if (isTrainingMode) {
-                  runMoveAnalysis(result.newState);
-                }
-                // Check for game end or continue
-                if (result.newState.phase !== "ended") {
-                  handleAITurn(result.newState);
-                } else if (result.newState.winner) {
-                  onGameEndRef.current?.(result.newState.winner);
+            try {
+              const { getAIWorkerManager } = await import("@/lib/ai-worker-manager");
+              const workerManager = getAIWorkerManager();
+              const move = await workerManager.computeMove(currentState, currentDifficulty);
+              if (move !== null) {
+                const result = applyMove(currentState, move);
+                if (result) {
+                  setState(result.newState);
+                  isProcessingAITurn.current = false;
+                  setIsThinking(false);
+                  if (isTrainingMode) {
+                    runMoveAnalysis(result.newState);
+                  }
+                  // Check for game end or continue
+                  if (result.newState.phase !== "ended") {
+                    handleAITurn(result.newState);
+                  } else if (result.newState.winner) {
+                    onGameEndRef.current?.(result.newState.winner);
+                  }
+                } else {
+                  isProcessingAITurn.current = false;
+                  setIsThinking(false);
                 }
               } else {
                 isProcessingAITurn.current = false;
                 setIsThinking(false);
               }
-            } else {
-              isProcessingAITurn.current = false;
-              setIsThinking(false);
+            } catch (error) {
+              console.error("AI computation error:", error);
+              // Fallback to synchronous computation
+              const move = getAIMove(currentState, currentDifficulty);
+              if (move !== null) {
+                const result = applyMove(currentState, move);
+                if (result) {
+                  setState(result.newState);
+                  isProcessingAITurn.current = false;
+                  setIsThinking(false);
+                  if (result.newState.phase !== "ended") {
+                    handleAITurn(result.newState);
+                  } else if (result.newState.winner) {
+                    onGameEndRef.current?.(result.newState.winner);
+                  }
+                } else {
+                  isProcessingAITurn.current = false;
+                  setIsThinking(false);
+                }
+              } else {
+                isProcessingAITurn.current = false;
+                setIsThinking(false);
+              }
             }
           }, 400);
         } else if (currentState.phase === "placing") {
-          const move = getAIMove(currentState, currentDifficulty);
-          if (move !== null) {
-            const result = applyMove(currentState, move);
-            if (result) {
-              setState(result.newState);
-              isProcessingAITurn.current = false;
-              setIsThinking(false);
-              if (isTrainingMode) {
-                runMoveAnalysis(result.newState);
+          // Use async AI computation for better performance
+          (async () => {
+            try {
+              const { getAIWorkerManager } = await import("@/lib/ai-worker-manager");
+              const workerManager = getAIWorkerManager();
+              const move = await workerManager.computeMove(currentState, currentDifficulty);
+              if (move !== null) {
+                const result = applyMove(currentState, move);
+                if (result) {
+                  setState(result.newState);
+                  isProcessingAITurn.current = false;
+                  setIsThinking(false);
+                  if (isTrainingMode) {
+                    runMoveAnalysis(result.newState);
+                  }
+                  if (result.newState.phase !== "ended") {
+                    handleAITurn(result.newState);
+                  } else if (result.newState.winner) {
+                    onGameEndRef.current?.(result.newState.winner);
+                  }
+                } else {
+                  isProcessingAITurn.current = false;
+                  setIsThinking(false);
+                }
+              } else {
+                isProcessingAITurn.current = false;
+                setIsThinking(false);
               }
-              if (result.newState.phase !== "ended") {
-                handleAITurn(result.newState);
-              } else if (result.newState.winner) {
-                onGameEndRef.current?.(result.newState.winner);
+            } catch (error) {
+              console.error("AI computation error:", error);
+              // Fallback to synchronous computation
+              const move = getAIMove(currentState, currentDifficulty);
+              if (move !== null) {
+                const result = applyMove(currentState, move);
+                if (result) {
+                  setState(result.newState);
+                  isProcessingAITurn.current = false;
+                  setIsThinking(false);
+                  if (isTrainingMode) {
+                    runMoveAnalysis(result.newState);
+                  }
+                  if (result.newState.phase !== "ended") {
+                    handleAITurn(result.newState);
+                  } else if (result.newState.winner) {
+                    onGameEndRef.current?.(result.newState.winner);
+                  }
+                } else {
+                  isProcessingAITurn.current = false;
+                  setIsThinking(false);
+                }
+              } else {
+                isProcessingAITurn.current = false;
+                setIsThinking(false);
               }
-            } else {
-              isProcessingAITurn.current = false;
-              setIsThinking(false);
             }
-          } else {
-            isProcessingAITurn.current = false;
-            setIsThinking(false);
-          }
+          })();
         } else {
           isProcessingAITurn.current = false;
           setIsThinking(false);
