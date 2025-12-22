@@ -42,6 +42,9 @@ const PLAYER_PREFIX = "player:";
 // TTL for rooms (2 hours in seconds)
 const ROOM_TTL = 2 * 60 * 60;
 
+// Maximum inactivity time for a match to be considered "live" (30 minutes)
+const MAX_LIVE_INACTIVITY_MS = 30 * 60 * 1000;
+
 /**
  * Generate a random room code (6 characters)
  */
@@ -148,7 +151,31 @@ export function getPublicRoomState(room: GameRoom) {
 }
 
 /**
- * Get all public rooms
+ * Check if a room is still "live" (active and worth watching)
+ */
+function isRoomLive(room: GameRoom): boolean {
+  // Game has ended - not live
+  if (room.state.phase === "ended") {
+    return false;
+  }
+
+  // Both players have left - not live
+  if (!room.player1 && !room.player2) {
+    return false;
+  }
+
+  // Match hasn't had activity in too long - not live
+  const timeSinceActivity = Date.now() - room.lastActivity;
+  if (timeSinceActivity > MAX_LIVE_INACTIVITY_MS) {
+    return false;
+  }
+
+  // Room is live
+  return true;
+}
+
+/**
+ * Get all public rooms that are still live
  */
 export async function getPublicRooms(): Promise<GameRoom[]> {
   // Note: This is a simplified implementation. In production, you'd want
@@ -160,7 +187,7 @@ export async function getPublicRooms(): Promise<GameRoom[]> {
   
   for (const key of keys) {
     const room = await kv.get<GameRoom>(key);
-    if (room && room.isPublic && room.state.phase !== "ended") {
+    if (room && room.isPublic && isRoomLive(room)) {
       rooms.push(room);
     }
   }
