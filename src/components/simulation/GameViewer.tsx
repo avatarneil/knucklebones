@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { SimulationResult } from "@/engine/simulation";
 import type { ColumnIndex, GameState } from "@/engine/types";
+import { isColumnIndex } from "@/lib/type-guards";
 
 interface GameViewerProps {
   result: SimulationResult;
@@ -147,7 +148,9 @@ export function GameViewer({ result, onClose }: GameViewerProps) {
               isPlayer1Human={false}
               isPlayer2Human={false}
               highlightedColumn={
-                currentMove ? (currentMove.column as ColumnIndex) : null
+                currentMove && isColumnIndex(currentMove.column)
+                  ? currentMove.column
+                  : null
               }
             />
           </div>

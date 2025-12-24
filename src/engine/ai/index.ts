@@ -8,6 +8,7 @@
 import { isColumnFull } from "../scorer";
 import type { ColumnIndex, DifficultyLevel, GameState } from "../types";
 import { ALL_COLUMNS } from "../types";
+import { isColumnIndex } from "@/lib/type-guards";
 import {
   DIFFICULTY_CONFIGS,
   getAllDifficultyLevels,
@@ -125,8 +126,8 @@ export class AIPlayer {
           opponentConfig?.defenseWeight,
           opponentConfig?.advancedEval,
         );
-        if (wasmMove !== null) {
-          return wasmMove as ColumnIndex;
+        if (wasmMove !== null && isColumnIndex(wasmMove)) {
+          return wasmMove;
         }
       }
 
@@ -252,8 +253,8 @@ export function getAIMove(
         opponentConfig?.defenseWeight,
         opponentConfig?.advancedEval,
       );
-      if (wasmMove !== null) {
-        return wasmMove as ColumnIndex;
+      if (wasmMove !== null && isColumnIndex(wasmMove)) {
+        return wasmMove;
       }
     }
 

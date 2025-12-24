@@ -4,6 +4,7 @@ import { Dices } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { DieValue } from "@/engine/types";
+import { randomDieValue } from "@/lib/type-guards";
 import { cn } from "@/lib/utils";
 import { Die } from "./Die";
 
@@ -32,7 +33,7 @@ export function DiceRoller({
       setIsAnimating(true);
       // Animate through random values
       const interval = setInterval(() => {
-        setDisplayValue((Math.floor(Math.random() * 6) + 1) as DieValue);
+        setDisplayValue(randomDieValue());
       }, 50);
 
       // Stop after animation

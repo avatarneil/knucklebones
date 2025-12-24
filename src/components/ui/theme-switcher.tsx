@@ -3,8 +3,7 @@
 import { Palette } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import type { ThemeId } from "@/lib/themes";
-import { themes } from "@/lib/themes";
+import { themeIds, themes } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 
@@ -84,7 +83,6 @@ export function ThemeSwitcher() {
  */
 export function ThemeSwitcherButton() {
   const { theme, setTheme } = useTheme();
-  const themeIds = Object.keys(themes) as ThemeId[];
   const currentIndex = themeIds.indexOf(theme);
   const nextTheme = themeIds[(currentIndex + 1) % themeIds.length];
 

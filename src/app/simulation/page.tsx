@@ -40,7 +40,6 @@ import {
 } from "@/components/ui/select";
 import {
   DIFFICULTY_CONFIGS,
-  type DifficultyLevel,
   getMasterProfileStats,
   type MasterProfileStats,
   resetMasterProfile,
@@ -49,6 +48,7 @@ import {
   type SimulationResult,
   type SimulationStats,
 } from "@/engine";
+import { parseDifficultyLevel } from "@/lib/type-guards";
 
 function SimulationContent() {
   const [player1Strategy, setPlayer1Strategy] =
@@ -210,7 +210,7 @@ function SimulationContent() {
               <Label>Player 1 Strategy</Label>
               <Select
                 value={player1Strategy}
-                onValueChange={(v) => setPlayer1Strategy(v as DifficultyLevel)}
+                onValueChange={(v) => setPlayer1Strategy(parseDifficultyLevel(v))}
                 disabled={isRunning}
               >
                 <SelectTrigger>
@@ -238,7 +238,7 @@ function SimulationContent() {
               <Label>Player 2 Strategy</Label>
               <Select
                 value={player2Strategy}
-                onValueChange={(v) => setPlayer2Strategy(v as DifficultyLevel)}
+                onValueChange={(v) => setPlayer2Strategy(parseDifficultyLevel(v))}
                 disabled={isRunning}
               >
                 <SelectTrigger>

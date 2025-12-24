@@ -293,4 +293,28 @@ export const themes: Record<ThemeId, Theme> = {
   "oled-dark": oledDarkTheme,
 };
 
-export const themeIds: ThemeId[] = Object.keys(themes) as ThemeId[];
+const THEME_IDS = [
+  "legacy",
+  "cult-of-the-lamb",
+  "dark",
+  "light",
+  "ocean",
+  "forest",
+  "oled-dark",
+] as const;
+
+export function isThemeId(value: unknown): value is ThemeId {
+  return typeof value === "string" && THEME_IDS.includes(value as ThemeId);
+}
+
+export function parseThemeId(
+  value: string | null | undefined,
+  defaultValue: ThemeId = "cult-of-the-lamb",
+): ThemeId {
+  if (isThemeId(value)) {
+    return value;
+  }
+  return defaultValue;
+}
+
+export const themeIds: ThemeId[] = [...THEME_IDS];

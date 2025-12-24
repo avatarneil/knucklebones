@@ -18,6 +18,7 @@ import type {
   PlayerScore,
 } from "./types";
 import { ALL_COLUMNS } from "./types";
+import { addDieToColumn, removeDieFromColumn } from "@/lib/type-guards";
 
 /**
  * Count occurrences of each die value in a column
@@ -71,10 +72,10 @@ export function calculateColumnScore(
  * Calculate the total score for a player's grid
  */
 export function calculateGridScore(grid: Grid): PlayerScore {
-  const columns = ALL_COLUMNS.map((i) => calculateColumnScore(grid[i], i)) as [
-    ColumnScore,
-    ColumnScore,
-    ColumnScore,
+  const columns: [ColumnScore, ColumnScore, ColumnScore] = [
+    calculateColumnScore(grid[0], 0),
+    calculateColumnScore(grid[1], 1),
+    calculateColumnScore(grid[2], 2),
   ];
 
   const total = columns.reduce((sum, col) => sum + col.total, 0);
@@ -94,14 +95,12 @@ export function calculateMoveScoreGain(
   const currentScore = calculateColumnScore(grid[column], column).total;
 
   // Create a copy of the column with the new die
-  const newColumn = [...grid[column]] as Column;
-  const emptyIndex = newColumn.indexOf(null);
+  const newColumn = addDieToColumn(grid[column], dieValue);
 
-  if (emptyIndex === -1) {
+  if (newColumn === null) {
     return 0; // Column is full
   }
 
-  newColumn[emptyIndex] = dieValue;
   const newScore = calculateColumnScore(newColumn, column).total;
 
   return newScore - currentScore;
@@ -128,9 +127,7 @@ export function calculateOpponentScoreLoss(
   const currentScore = calculateColumnScore(opponentGrid[column], column).total;
 
   // Create a copy of the column without the matching dice
-  const newColumn = opponentGrid[column].map((d) =>
-    d === dieValue ? null : d,
-  ) as Column;
+  const newColumn = removeDieFromColumn(opponentGrid[column], dieValue);
   const newScore = calculateColumnScore(newColumn, column).total;
 
   return currentScore - newScore;

@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { DIFFICULTY_CONFIGS } from "@/engine";
-import type { DifficultyLevel } from "@/engine/types";
+import { parseDifficultyLevel } from "@/lib/type-guards";
 
 export default function Home() {
   const [difficulty, setDifficulty] = useState<DifficultyLevel>("medium");
@@ -77,7 +77,7 @@ export default function Home() {
               <Label>Difficulty</Label>
               <Select
                 value={difficulty}
-                onValueChange={(v) => setDifficulty(v as DifficultyLevel)}
+                onValueChange={(v) => setDifficulty(parseDifficultyLevel(v))}
               >
                 <SelectTrigger>
                   <SelectValue>

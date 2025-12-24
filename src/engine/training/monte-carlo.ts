@@ -14,12 +14,12 @@ import {
 import { cloneState } from "../state";
 import type {
   ColumnIndex,
-  DieValue,
   GameState,
   MoveAnalysis,
   Player,
 } from "../types";
 import { ALL_COLUMNS, getOpponent } from "../types";
+import { randomDieValue } from "@/lib/type-guards";
 
 /**
  * Result of Monte Carlo simulation for a single move
@@ -150,7 +150,7 @@ function simulateGame(
 
     // Roll phase
     if (currentState.phase === "rolling") {
-      const dieValue = (Math.floor(Math.random() * 6) + 1) as DieValue;
+      const dieValue = randomDieValue();
       currentState = rollSpecificDie(currentState, dieValue);
     }
 

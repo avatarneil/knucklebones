@@ -20,6 +20,7 @@ import {
   recordOpponentMove,
   resetOpponentProfile as resetWasmProfile,
 } from "./wasm-bindings";
+import { isColumnIndex } from "@/lib/type-guards";
 
 export interface MasterProfileStats {
   gamesCompleted: number;
@@ -117,7 +118,10 @@ export function getMasterMove(state: GameState): ColumnIndex | null {
     state.currentDie,
   );
 
-  return result as ColumnIndex | null;
+  if (result !== null && isColumnIndex(result)) {
+    return result;
+  }
+  return null;
 }
 
 /**

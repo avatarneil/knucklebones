@@ -6,8 +6,8 @@
 
 import { NextResponse } from "next/server";
 import { rollSpecificDie } from "@/engine";
-import type { DieValue } from "@/engine/types";
 import { getPlayerRole, getPlayerSession, getRoom, setRoom } from "@/lib/kv";
+import { randomDieValue } from "@/lib/type-guards";
 
 export async function POST(request: Request) {
   try {
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     }
 
     // Roll the die
-    const dieValue = (Math.floor(Math.random() * 6) + 1) as DieValue;
+    const dieValue = randomDieValue();
     room.state = rollSpecificDie(room.state, dieValue);
 
     // Save room

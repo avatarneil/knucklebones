@@ -10,13 +10,19 @@ import type {
   ColumnIndex,
   DieValue,
   GameState,
-  Grid,
   LegalMoves,
   Move,
   MoveResult,
   Player,
 } from "./types";
 import { ALL_COLUMNS, getOpponent } from "./types";
+import {
+  addDieToColumn,
+  cloneGrid,
+  getNonNullDice,
+  randomDieValue,
+  removeDieFromColumn,
+} from "@/lib/type-guards";
 
 /**
  * Get all legal column choices for the current state
@@ -48,14 +54,8 @@ export function isLegalMove(state: GameState, column: ColumnIndex): boolean {
  * Place a die in a column (helper function)
  */
 function placeDieInColumn(column: Column, dieValue: DieValue): Column {
-  const newColumn = [...column] as Column;
-  const emptyIndex = newColumn.indexOf(null);
-
-  if (emptyIndex !== -1) {
-    newColumn[emptyIndex] = dieValue;
-  }
-
-  return newColumn;
+  const result = addDieToColumn(column, dieValue);
+  return result ?? column; // If column is full, return unchanged
 }
 
 /**
@@ -63,7 +63,7 @@ function placeDieInColumn(column: Column, dieValue: DieValue): Column {
  * (removes nulls and shifts remaining dice to the bottom)
  */
 function compactColumn(column: Column): Column {
-  const nonNullDice = column.filter((d) => d !== null) as DieValue[];
+  const nonNullDice = getNonNullDice(column);
   const result: Column = [null, null, null];
 
   // Fill from bottom (index 0) up
@@ -78,7 +78,7 @@ function compactColumn(column: Column): Column {
  * Remove matching dice from opponent's column and compact
  */
 function removeMatchingDice(column: Column, dieValue: DieValue): Column {
-  const afterRemoval = column.map((d) => (d === dieValue ? null : d)) as Column;
+  const afterRemoval = removeDieFromColumn(column, dieValue);
   return compactColumn(afterRemoval);
 }
 
@@ -108,8 +108,8 @@ export function applyMove(
 
   // Clone the grids
   const newGrids = {
-    player1: state.grids.player1.map((col) => [...col]) as Grid,
-    player2: state.grids.player2.map((col) => [...col]) as Grid,
+    player1: cloneGrid(state.grids.player1),
+    player2: cloneGrid(state.grids.player2),
   };
 
   // Place the die in the current player's column
@@ -175,7 +175,7 @@ export function rollDie(state: GameState): GameState {
     return state;
   }
 
-  const dieValue = (Math.floor(Math.random() * 6) + 1) as DieValue;
+  const dieValue = randomDieValue();
 
   return {
     ...state,

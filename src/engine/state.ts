@@ -5,14 +5,8 @@
  */
 
 import { calculateGridScore } from "./scorer";
-import type {
-  Column,
-  DieValue,
-  GameConfig,
-  GameState,
-  Grid,
-  Player,
-} from "./types";
+import type { DieValue, GameConfig, GameState, Grid, Player } from "./types";
+import { cloneGrid, parseGameState } from "@/lib/type-guards";
 
 /**
  * Create an empty column
@@ -52,8 +46,8 @@ export function createInitialState(_config?: GameConfig): GameState {
 export function cloneState(state: GameState): GameState {
   return {
     grids: {
-      player1: state.grids.player1.map((col) => [...col]) as Grid,
-      player2: state.grids.player2.map((col) => [...col]) as Grid,
+      player1: cloneGrid(state.grids.player1),
+      player2: cloneGrid(state.grids.player2),
     },
     currentPlayer: state.currentPlayer,
     currentDie: state.currentDie,
@@ -130,7 +124,7 @@ export function serializeState(state: GameState): string {
  * Deserialize state from JSON string
  */
 export function deserializeState(json: string): GameState {
-  return JSON.parse(json) as GameState;
+  return parseGameState(json);
 }
 
 /**
@@ -144,8 +138,8 @@ export function createStateFromGrids(
 ): GameState {
   return {
     grids: {
-      player1: player1Grid.map((col) => [...col]) as Grid,
-      player2: player2Grid.map((col) => [...col]) as Grid,
+      player1: cloneGrid(player1Grid),
+      player2: cloneGrid(player2Grid),
     },
     currentPlayer,
     currentDie,
