@@ -9,8 +9,13 @@ import { endMasterGame, getAIMove, recordOpponentMoveForLearning } from "./ai";
 import { applyMove, rollDie } from "./moves";
 import { calculateGridScore } from "./scorer";
 import { createInitialState } from "./state";
-import type { DifficultyLevel, GameState, Player } from "./types";
-import { cloneGameState, isColumnIndex, isDieValue } from "@/lib/type-guards";
+import type {
+  ColumnIndex,
+  DieValue,
+  DifficultyLevel,
+  GameState,
+  Player,
+} from "./types";
 
 export interface SimulationResult {
   id: number;
@@ -124,17 +129,12 @@ async function simulateSingleGame(
         (isMasterPlayer1 && state.currentPlayer === "player2") ||
         (isMasterPlayer2 && state.currentPlayer === "player1");
 
-      if (
-        isOpponentOfMaster &&
-        state.currentDie !== null &&
-        isColumnIndex(move) &&
-        isDieValue(state.currentDie)
-      ) {
+      if (isOpponentOfMaster && state.currentDie !== null) {
         // Record this move for the Master AI to learn from
         recordOpponentMoveForLearning(
           state,
-          move,
-          state.currentDie,
+          move as ColumnIndex,
+          state.currentDie as DieValue,
           state.currentPlayer, // The opponent player
         );
       }
@@ -144,9 +144,9 @@ async function simulateSingleGame(
     moves.push({
       turn: state.turnNumber,
       player: state.currentPlayer,
-      dieValue: state.currentDie ?? 1, // Fallback, but should always be set
+      dieValue: state.currentDie!,
       column: move,
-      state: cloneGameState(state), // Deep clone
+      state: JSON.parse(JSON.stringify(state)) as GameState, // Deep clone
     });
 
     // Apply move
@@ -191,7 +191,7 @@ async function simulateSingleGame(
     finalScore: scores,
     turnCount,
     moves,
-    finalState: cloneGameState(state), // Deep clone final state
+    finalState: JSON.parse(JSON.stringify(state)) as GameState, // Deep clone final state
     player1Strategy,
     player2Strategy,
     completedAt: Date.now(),

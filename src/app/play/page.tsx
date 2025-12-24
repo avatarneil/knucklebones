@@ -39,8 +39,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { createInitialState, DIFFICULTY_CONFIGS } from "@/engine";
 import { isColumnFull } from "@/engine/scorer";
-import type { ColumnIndex, GameState } from "@/engine/types";
-import { parseDifficultyLevel } from "@/lib/type-guards";
+import type { ColumnIndex, DifficultyLevel, GameState } from "@/engine/types";
 import { ALL_COLUMNS } from "@/engine/types";
 import { useGame } from "@/hooks/useGame";
 import { useGameHistory } from "@/hooks/useGameHistory";
@@ -49,7 +48,8 @@ import { gameStorage } from "@/lib/game-storage";
 
 function PlayContent() {
   const searchParams = useSearchParams();
-  const initialDifficulty = parseDifficultyLevel(searchParams.get("difficulty"));
+  const initialDifficulty =
+    (searchParams.get("difficulty") as DifficultyLevel) || "medium";
   const initialTraining = searchParams.get("training") === "true";
 
   const [showSettings, setShowSettings] = useState(false);
@@ -524,7 +524,7 @@ function PlayContent() {
               <Label>AI Difficulty</Label>
               <Select
                 value={game.difficulty}
-                onValueChange={(v) => game.setDifficulty(parseDifficultyLevel(v))}
+                onValueChange={(v) => game.setDifficulty(v as DifficultyLevel)}
               >
                 <SelectTrigger>
                   <SelectValue />

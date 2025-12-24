@@ -24,9 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createInitialState, DIFFICULTY_CONFIGS } from "@/engine";
-import type { GameState } from "@/engine/types";
+import type { ColumnIndex, DifficultyLevel, GameState } from "@/engine/types";
 import { useGame } from "@/hooks/useGame";
-import { parseDifficultyLevel } from "@/lib/type-guards";
 
 function AIVsAIContent() {
   const [showSettings, setShowSettings] = useState(false);
@@ -114,7 +113,7 @@ function AIVsAIContent() {
             <span className="text-muted-foreground">Player 1:</span>
             <Select
               value={player1Difficulty}
-              onValueChange={(v) => setPlayer1Difficulty(parseDifficultyLevel(v))}
+              onValueChange={(v) => setPlayer1Difficulty(v as DifficultyLevel)}
             >
               <SelectTrigger className="h-7 w-[120px] md:w-[140px] text-xs">
                 <SelectValue />
@@ -138,7 +137,7 @@ function AIVsAIContent() {
             <span className="text-muted-foreground">Player 2:</span>
             <Select
               value={player2Difficulty}
-              onValueChange={(v) => setPlayer2Difficulty(parseDifficultyLevel(v))}
+              onValueChange={(v) => setPlayer2Difficulty(v as DifficultyLevel)}
             >
               <SelectTrigger className="h-7 w-[120px] md:w-[140px] text-xs">
                 <SelectValue />
@@ -190,7 +189,9 @@ function AIVsAIContent() {
               <Label>Player 1 Strategy</Label>
               <Select
                 value={player1Difficulty}
-                onValueChange={(v) => setPlayer1Difficulty(parseDifficultyLevel(v))}
+                onValueChange={(v) =>
+                  setPlayer1Difficulty(v as DifficultyLevel)
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -217,7 +218,9 @@ function AIVsAIContent() {
               <Label>Player 2 Strategy</Label>
               <Select
                 value={player2Difficulty}
-                onValueChange={(v) => setPlayer2Difficulty(parseDifficultyLevel(v))}
+                onValueChange={(v) =>
+                  setPlayer2Difficulty(v as DifficultyLevel)
+                }
               >
                 <SelectTrigger>
                   <SelectValue />

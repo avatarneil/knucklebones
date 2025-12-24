@@ -19,11 +19,7 @@
     "rules": {
       "recommended": true,
       "suspicious": {
-        "noUnknownAtRules": "off",
-        "noExplicitAny": "error"
-      },
-      "style": {
-        "noNonNullAssertion": "error"
+        "noUnknownAtRules": "off"
       }
     },
     "domains": {

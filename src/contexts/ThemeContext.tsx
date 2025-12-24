@@ -3,7 +3,7 @@
 import type React from "react";
 import { createContext, useContext, useEffect, useState } from "react";
 import type { ThemeId } from "@/lib/themes";
-import { parseThemeId, themes } from "@/lib/themes";
+import { themes } from "@/lib/themes";
 
 interface ThemeContextType {
   theme: ThemeId;
@@ -24,7 +24,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(THEME_STORAGE_KEY, "legacy");
       return "legacy";
     }
-    return parseThemeId(stored);
+    return (stored as ThemeId) || "cult-of-the-lamb";
   });
 
   const setTheme = (newTheme: ThemeId) => {
