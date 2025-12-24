@@ -139,6 +139,14 @@ export function useGame(options: UseGameOptions): UseGameReturn {
         (isPlayer1AI && (options.player1Difficulty ?? difficulty)) || 
         ((isPlayer2AI || isPlayer2AIVsAI) && (options.player2Difficulty ?? difficulty)) ||
         difficulty;
+      
+      // Determine opponent difficulty (for AI vs AI mode)
+      const opponentDifficulty = 
+        options.mode === "ai-vs-ai"
+          ? (gameState.currentPlayer === "player1" 
+              ? (options.player2Difficulty ?? difficulty)
+              : (options.player1Difficulty ?? difficulty))
+          : undefined;
 
       // AI turn with delay for better UX
       aiTimeoutRef.current = setTimeout(() => {
@@ -153,7 +161,7 @@ export function useGame(options: UseGameOptions): UseGameReturn {
           // Place after short delay
           setTimeout(() => {
             setIsRolling(false);
-            const move = getAIMove(currentState, currentDifficulty);
+            const move = getAIMove(currentState, currentDifficulty, opponentDifficulty);
             if (move !== null) {
               const result = applyMove(currentState, move);
               if (result) {
@@ -179,7 +187,7 @@ export function useGame(options: UseGameOptions): UseGameReturn {
             }
           }, 400);
         } else if (currentState.phase === "placing") {
-          const move = getAIMove(currentState, currentDifficulty);
+          const move = getAIMove(currentState, currentDifficulty, opponentDifficulty);
           if (move !== null) {
             const result = applyMove(currentState, move);
             if (result) {

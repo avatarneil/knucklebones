@@ -75,7 +75,9 @@ async function simulateSingleGame(
     // Get AI move
     const currentStrategy =
       state.currentPlayer === "player1" ? player1Strategy : player2Strategy;
-    const move = getAIMove(state, currentStrategy);
+    const opponentStrategy =
+      state.currentPlayer === "player1" ? player2Strategy : player1Strategy;
+    const move = getAIMove(state, currentStrategy, opponentStrategy);
 
     if (move === null) {
       // No legal moves - should not happen, but handle gracefully

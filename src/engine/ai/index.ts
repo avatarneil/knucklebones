@@ -68,9 +68,10 @@ export class AIPlayer {
   /**
    * Choose a move for the current game state
    */
-  chooseMove(state: GameState): ColumnIndex | null {
+  chooseMove(state: GameState, opponentDifficulty?: DifficultyLevel): ColumnIndex | null {
     try {
       const config = getDifficultyConfig(this.difficulty);
+      const opponentConfig = opponentDifficulty ? getDifficultyConfig(opponentDifficulty) : undefined;
       
       // Try WASM first if available (synchronous, non-blocking)
       if (state.phase === "placing" && state.currentDie !== null) {
@@ -84,6 +85,11 @@ export class AIPlayer {
           config.offenseWeight,
           config.defenseWeight,
           config.advancedEval,
+          opponentConfig?.depth,
+          opponentConfig?.randomness,
+          opponentConfig?.offenseWeight,
+          opponentConfig?.defenseWeight,
+          opponentConfig?.advancedEval,
         );
         if (wasmMove !== null) {
           return wasmMove as ColumnIndex;
@@ -91,7 +97,7 @@ export class AIPlayer {
       }
       
       // Fallback to TypeScript implementation
-      const move = getBestMove(state, config);
+      const move = getBestMove(state, config, opponentConfig);
       
       // Fallback: if expectimax fails, use a simple heuristic
       if (move === null && state.phase === "placing" && state.currentDie !== null) {
@@ -168,9 +174,11 @@ export function createAIPlayer(
 export function getAIMove(
   state: GameState,
   difficulty: DifficultyLevel = "medium",
+  opponentDifficulty?: DifficultyLevel,
 ): ColumnIndex | null {
   try {
     const config = getDifficultyConfig(difficulty);
+    const opponentConfig = opponentDifficulty ? getDifficultyConfig(opponentDifficulty) : undefined;
     
     // Try WASM first if available (synchronous, non-blocking)
     if (state.phase === "placing" && state.currentDie !== null) {
@@ -184,6 +192,11 @@ export function getAIMove(
         config.offenseWeight,
         config.defenseWeight,
         config.advancedEval,
+        opponentConfig?.depth,
+        opponentConfig?.randomness,
+        opponentConfig?.offenseWeight,
+        opponentConfig?.defenseWeight,
+        opponentConfig?.advancedEval,
       );
       if (wasmMove !== null) {
         return wasmMove as ColumnIndex;
@@ -191,7 +204,7 @@ export function getAIMove(
     }
     
     // Fallback to TypeScript implementation
-    const move = getBestMove(state, config);
+    const move = getBestMove(state, config, opponentConfig);
     
     // Fallback: if expectimax fails, use a simple heuristic
     if (move === null && state.phase === "placing" && state.currentDie !== null) {
