@@ -1,10 +1,10 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { calculateGridScore } from "@/engine/scorer";
 import type { ColumnIndex, Grid, MoveAnalysis } from "@/engine/types";
 import { ALL_COLUMNS } from "@/engine/types";
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
 import { Column } from "./Column";
 
 interface PlayerGridProps {
@@ -70,10 +70,10 @@ export function PlayerGrid({
               : "bg-muted-foreground/30",
           )}
         />
-        <span className="font-semibold text-[clamp(0.875rem,2.5vw,1.125rem)]">{playerName}</span>
-        {isThinking && (
-          <Loader2 className="w-4 h-4 animate-spin text-accent" />
-        )}
+        <span className="font-semibold text-[clamp(0.875rem,2.5vw,1.125rem)]">
+          {playerName}
+        </span>
+        {isThinking && <Loader2 className="w-4 h-4 animate-spin text-accent" />}
         <div
           className={cn(
             "font-mono font-bold text-[clamp(1.125rem,3.5vw,1.5rem)] tabular-nums transition-all",

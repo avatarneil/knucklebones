@@ -184,15 +184,14 @@ export async function getPublicRooms(): Promise<GameRoom[]> {
   // In a real implementation, you'd maintain a sorted set or list of public room IDs
   const keys = await kv.keys(`${ROOM_PREFIX}*`);
   const rooms: GameRoom[] = [];
-  
+
   for (const key of keys) {
     const room = await kv.get<GameRoom>(key);
     if (room && room.isPublic && isRoomLive(room)) {
       rooms.push(room);
     }
   }
-  
+
   // Sort by last activity (most recent first)
   return rooms.sort((a, b) => b.lastActivity - a.lastActivity);
 }
-

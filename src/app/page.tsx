@@ -1,9 +1,19 @@
 "use client";
 
-import { Bot, Dices, Eye, GraduationCap, Sparkles, Swords, TrendingUp, Users } from "lucide-react";
+import {
+  Bot,
+  Dices,
+  Eye,
+  GraduationCap,
+  Sparkles,
+  Swords,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import {
   Card,
   CardContent,
@@ -28,7 +38,12 @@ export default function Home() {
   const [trainingMode, setTrainingMode] = useState(false);
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-8">
+    <main className="min-h-screen flex flex-col items-center justify-center p-8 relative">
+      {/* Theme Switcher */}
+      <div className="absolute top-4 right-4">
+        <ThemeSwitcher />
+      </div>
+
       {/* Title */}
       <div className="text-center mb-12 animate-fade-in-up">
         <div className="flex items-center justify-center gap-3 mb-4">

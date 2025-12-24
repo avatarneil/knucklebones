@@ -4,10 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { getScores } from "@/engine/state";
 import type { DifficultyLevel, GameState, Player } from "@/engine/types";
 import {
-  gameStorage,
-  generateSessionId,
   type GameHistoryEntry,
   type GameSession,
+  gameStorage,
+  generateSessionId,
 } from "@/lib/game-storage";
 
 interface UseGameHistoryReturn {
@@ -96,21 +96,18 @@ export function useGameHistory(): UseGameHistoryReturn {
     [],
   );
 
-  const saveGame = useCallback(
-    (sessionId: string, state: GameState) => {
-      const current = gameStorage.loadSession();
-      if (current && current.id === sessionId) {
-        const updated: GameSession = {
-          ...current,
-          state,
-          lastPlayedAt: Date.now(),
-        };
-        gameStorage.saveSession(updated);
-        setSavedSession(updated);
-      }
-    },
-    [],
-  );
+  const saveGame = useCallback((sessionId: string, state: GameState) => {
+    const current = gameStorage.loadSession();
+    if (current && current.id === sessionId) {
+      const updated: GameSession = {
+        ...current,
+        state,
+        lastPlayedAt: Date.now(),
+      };
+      gameStorage.saveSession(updated);
+      setSavedSession(updated);
+    }
+  }, []);
 
   const resumeGame = useCallback((): GameSession | null => {
     const session = gameStorage.loadSession();
@@ -187,5 +184,3 @@ export function useGameHistory(): UseGameHistoryReturn {
     refresh,
   };
 }
-
-

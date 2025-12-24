@@ -3,6 +3,7 @@
 import { ArrowLeft, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import {
   Card,
   CardContent,
@@ -30,12 +31,15 @@ export default function DocsPage() {
               </p>
             </div>
           </div>
-          <Link href="/">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeSwitcher />
+            <Link href="/">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Overview */}
@@ -80,11 +84,25 @@ export default function DocsPage() {
                       <p className="font-medium mb-2">Configuration:</p>
                       <ul className="space-y-1 text-muted-foreground">
                         <li>Search Depth: {config.depth}</li>
-                        <li>Randomness: {Math.round(config.randomness * 100)}%</li>
-                        <li>Considers Opponent: {config.considerOpponent ? "Yes" : "No"}</li>
-                        <li>Advanced Evaluation: {config.advancedEval ? "Yes" : "No"}</li>
-                        <li>Offense Weight: {Math.round(config.offenseWeight * 100)}%</li>
-                        <li>Defense Weight: {Math.round(config.defenseWeight * 100)}%</li>
+                        <li>
+                          Randomness: {Math.round(config.randomness * 100)}%
+                        </li>
+                        <li>
+                          Considers Opponent:{" "}
+                          {config.considerOpponent ? "Yes" : "No"}
+                        </li>
+                        <li>
+                          Advanced Evaluation:{" "}
+                          {config.advancedEval ? "Yes" : "No"}
+                        </li>
+                        <li>
+                          Offense Weight:{" "}
+                          {Math.round(config.offenseWeight * 100)}%
+                        </li>
+                        <li>
+                          Defense Weight:{" "}
+                          {Math.round(config.defenseWeight * 100)}%
+                        </li>
                       </ul>
                     </div>
                     <div>
@@ -117,9 +135,7 @@ export default function DocsPage() {
                   <span className="text-accent">function</span>{" "}
                   <span className="text-primary">getGreedyMove</span>(state):
                 </p>
-                <p className="ml-4 mb-2">
-                  legalMoves = getLegalMoves(state)
-                </p>
+                <p className="ml-4 mb-2">legalMoves = getLegalMoves(state)</p>
                 <p className="ml-4 mb-2">
                   scoredMoves = legalMoves.map(move =&gt; {"{"}
                 </p>
@@ -127,9 +143,7 @@ export default function DocsPage() {
                   score = immediateScoreGain(move) + opponentScoreLoss(move)
                 </p>
                 <p className="ml-4 mb-2">{"}"})</p>
-                <p className="ml-4">
-                  return max(scoredMoves, by=score)
-                </p>
+                <p className="ml-4">return max(scoredMoves, by=score)</p>
               </div>
               <p className="text-sm text-muted-foreground mt-3">
                 This algorithm evaluates each legal move by calculating the
@@ -149,17 +163,20 @@ export default function DocsPage() {
               <div className="bg-muted/50 p-4 rounded-lg font-mono text-sm">
                 <p className="mb-2">
                   <span className="text-accent">function</span>{" "}
-                  <span className="text-primary">expectimax</span>(state, depth, player):
+                  <span className="text-primary">expectimax</span>(state, depth,
+                  player):
                 </p>
                 <p className="ml-4 mb-2">
                   <span className="text-accent">if</span> depth == 0{" "}
                   <span className="text-accent">or</span> gameEnded(state):
                 </p>
                 <p className="ml-8 mb-2">
-                  <span className="text-accent">return</span> evaluate(state, player)
+                  <span className="text-accent">return</span> evaluate(state,
+                  player)
                 </p>
                 <p className="ml-4 mb-2">
-                  <span className="text-accent">if</span> state.phase == "rolling":
+                  <span className="text-accent">if</span> state.phase ==
+                  "rolling":
                 </p>
                 <p className="ml-8 mb-2">
                   <span className="text-accent">return</span>{" "}
@@ -168,7 +185,8 @@ export default function DocsPage() {
                   <span className="text-accent">in</span> [1..6])
                 </p>
                 <p className="ml-4 mb-2">
-                  <span className="text-accent">if</span> state.currentPlayer == player:
+                  <span className="text-accent">if</span> state.currentPlayer ==
+                  player:
                 </p>
                 <p className="ml-8 mb-2">
                   <span className="text-accent">return</span>{" "}
@@ -190,8 +208,8 @@ export default function DocsPage() {
                 Expectimax alternates between MAX nodes (choosing the best move
                 for the current player), MIN nodes (assuming the opponent makes
                 the worst move for us), and CHANCE nodes (averaging over all
-                possible dice rolls, each with 1/6 probability). The search depth
-                determines how many moves ahead the algorithm looks.
+                possible dice rolls, each with 1/6 probability). The search
+                depth determines how many moves ahead the algorithm looks.
               </p>
             </div>
 
@@ -210,7 +228,9 @@ export default function DocsPage() {
                   Simple score difference between players.
                 </p>
                 <p>
-                  <strong className="text-foreground">Advanced Evaluation:</strong>{" "}
+                  <strong className="text-foreground">
+                    Advanced Evaluation:
+                  </strong>{" "}
                   Considers multiple factors:
                 </p>
                 <ul className="ml-6 list-disc space-y-1">
@@ -258,8 +278,8 @@ export default function DocsPage() {
               </p>
               <ul className="space-y-2 text-sm text-muted-foreground ml-4">
                 <li>
-                  • <strong>Greedy:</strong> O(n) where n is the number of
-                  legal moves (typically 1-3)
+                  • <strong>Greedy:</strong> O(n) where n is the number of legal
+                  moves (typically 1-3)
                 </li>
                 <li>
                   • <strong>Depth 1:</strong> ~6 nodes (one chance node)
@@ -339,7 +359,7 @@ export default function DocsPage() {
 
 function getStrategyExplanation(
   level: DifficultyLevel,
-  config: typeof DIFFICULTY_CONFIGS[DifficultyLevel],
+  config: (typeof DIFFICULTY_CONFIGS)[DifficultyLevel],
 ): string {
   switch (level) {
     case "greedy":

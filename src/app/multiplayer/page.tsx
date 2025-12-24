@@ -19,6 +19,7 @@ import { useCallback, useEffect, useState } from "react";
 import { GameBoard } from "@/components/game";
 import { InstallPrompt } from "@/components/pwa";
 import { Button } from "@/components/ui/button";
+import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import {
   Card,
   CardContent,
@@ -157,19 +158,22 @@ export default function MultiplayerPage() {
           </Button>
         </Link>
 
-        {/* Connection status */}
-        <div className="absolute top-2 sm:top-4 right-2 sm:right-4 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-          {multiplayer.isConnected ? (
-            <>
-              <Wifi className="w-4 h-4 text-green-500" />
-              <span className="text-green-500">Connected</span>
-            </>
-          ) : (
-            <>
-              <WifiOff className="w-4 h-4 text-red-500" />
-              <span className="text-red-500">Disconnected</span>
-            </>
-          )}
+        {/* Connection status & Theme */}
+        <div className="absolute top-2 sm:top-4 right-2 sm:right-4 flex items-center gap-2 sm:gap-3">
+          <ThemeSwitcher />
+          <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+            {multiplayer.isConnected ? (
+              <>
+                <Wifi className="w-4 h-4 text-green-500" />
+                <span className="text-green-500">Connected</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="w-4 h-4 text-red-500" />
+                <span className="text-red-500">Disconnected</span>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="text-center mb-4 sm:mb-8">
@@ -217,7 +221,10 @@ export default function MultiplayerPage() {
                       <EyeOff className="w-4 h-4 text-muted-foreground" />
                     )}
                     <div className="flex flex-col">
-                      <Label htmlFor="public-room" className="text-sm font-medium cursor-pointer">
+                      <Label
+                        htmlFor="public-room"
+                        className="text-sm font-medium cursor-pointer"
+                      >
                         {isPublic ? "Public Room" : "Private Room"}
                       </Label>
                       <span className="text-xs text-muted-foreground">

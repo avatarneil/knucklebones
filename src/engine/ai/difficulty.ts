@@ -86,6 +86,16 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     defenseWeight: 0.5,
     advancedEval: true,
   },
+  master: {
+    name: "Master",
+    description: "Learns opponent patterns and adapts strategy",
+    depth: 5,
+    randomness: 0,
+    considerOpponent: true,
+    offenseWeight: 0.5, // Base weight, adapted at runtime
+    defenseWeight: 0.5, // Base weight, adapted at runtime
+    advancedEval: true,
+  },
 };
 
 /**
@@ -99,5 +109,5 @@ export function getDifficultyConfig(level: DifficultyLevel): DifficultyConfig {
  * Get all difficulty levels in order
  */
 export function getAllDifficultyLevels(): DifficultyLevel[] {
-  return ["greedy", "beginner", "easy", "medium", "hard", "expert"];
+  return ["greedy", "beginner", "easy", "medium", "hard", "expert", "master"];
 }

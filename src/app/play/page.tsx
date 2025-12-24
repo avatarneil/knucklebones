@@ -19,6 +19,7 @@ import { GameBoard, KeyboardShortcuts } from "@/components/game";
 import { InstallPrompt } from "@/components/pwa";
 import { WinProbability } from "@/components/training";
 import { Button } from "@/components/ui/button";
+import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import {
   Dialog,
   DialogContent,
@@ -55,7 +56,8 @@ function PlayContent() {
   const [showGameOver, setShowGameOver] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [showClearHistoryDialog, setShowClearHistoryDialog] = useState(false);
-  const [pendingSavedSession, setPendingSavedSession] = useState<ReturnType<typeof gameStorage.loadSession>>(null);
+  const [pendingSavedSession, setPendingSavedSession] =
+    useState<ReturnType<typeof gameStorage.loadSession>>(null);
   const [lastWinner, setLastWinner] = useState<
     "player1" | "player2" | "draw" | null
   >(null);
@@ -86,7 +88,9 @@ function PlayContent() {
   const getPreviousRoomFollowers = useCallback(async (): Promise<string[]> => {
     if (!publicRoomIdRef.current) return [];
     try {
-      const response = await fetch(`/api/rooms/${publicRoomIdRef.current}/state`);
+      const response = await fetch(
+        `/api/rooms/${publicRoomIdRef.current}/state`,
+      );
       const data = await response.json();
       if (data.success && data.followedBy) {
         return data.followedBy;
@@ -98,47 +102,50 @@ function PlayContent() {
   }, []);
 
   // Create or update public room
-  const updatePublicRoom = useCallback(async (state: GameState) => {
-    if (!isPublicMatch) return;
+  const updatePublicRoom = useCallback(
+    async (state: GameState) => {
+      if (!isPublicMatch) return;
 
-    try {
-      if (publicRoomIdRef.current) {
-        // Update existing room
-        await fetch("/api/rooms/update-ai", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            roomId: publicRoomIdRef.current,
-            state,
-          }),
-        });
-      } else {
-        // Get followers from previous room if it exists
-        const followedBy = await getPreviousRoomFollowers();
-        
-        // Create new room
-        const response = await fetch("/api/rooms/create-ai", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            playerName: "You",
-            difficulty: gameDifficulty,
-            initialState: state,
-            followedBy, // Migrate followers
-          }),
-        });
-        const data = await response.json();
-        if (data.success) {
-          publicRoomIdRef.current = data.roomId;
-          
-          // Notify followers (in a real implementation, you'd use websockets or server-sent events)
-          // For now, followers will need to poll or check the watch page
+      try {
+        if (publicRoomIdRef.current) {
+          // Update existing room
+          await fetch("/api/rooms/update-ai", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              roomId: publicRoomIdRef.current,
+              state,
+            }),
+          });
+        } else {
+          // Get followers from previous room if it exists
+          const followedBy = await getPreviousRoomFollowers();
+
+          // Create new room
+          const response = await fetch("/api/rooms/create-ai", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              playerName: "You",
+              difficulty: gameDifficulty,
+              initialState: state,
+              followedBy, // Migrate followers
+            }),
+          });
+          const data = await response.json();
+          if (data.success) {
+            publicRoomIdRef.current = data.roomId;
+
+            // Notify followers (in a real implementation, you'd use websockets or server-sent events)
+            // For now, followers will need to poll or check the watch page
+          }
         }
+      } catch (err) {
+        console.error("Error updating public room:", err);
       }
-    } catch (err) {
-      console.error("Error updating public room:", err);
-    }
-  }, [isPublicMatch, gameDifficulty, getPreviousRoomFollowers]);
+    },
+    [isPublicMatch, gameDifficulty, getPreviousRoomFollowers],
+  );
 
   const startNewSession = useCallback(async () => {
     const newState = createInitialState();
@@ -150,17 +157,23 @@ function PlayContent() {
     });
     sessionIdRef.current = sessionId;
     latestStateRef.current = newState;
-    
+
     // If public match is enabled, create a new room
     if (isPublicMatch) {
       publicRoomIdRef.current = null; // Reset to create new room
       await updatePublicRoom(newState);
     }
-    
+
     setGameInitialState(newState);
     setGameKey((k) => k + 1); // Force remount of game hook
     setIsReady(true);
-  }, [gameHistory, gameDifficulty, gameTrainingMode, isPublicMatch, updatePublicRoom]);
+  }, [
+    gameHistory,
+    gameDifficulty,
+    gameTrainingMode,
+    isPublicMatch,
+    updatePublicRoom,
+  ]);
 
   // Check for saved game on mount - directly check storage to avoid race condition
   useEffect(() => {
@@ -282,7 +295,7 @@ function PlayContent() {
       initialState: newState,
     });
     sessionIdRef.current = sessionId;
-    
+
     // If public match is enabled, create a new room (followers will auto-join)
     if (isPublicMatch) {
       publicRoomIdRef.current = null; // Reset to create new room
@@ -374,7 +387,11 @@ function PlayContent() {
       {/* Header */}
       <header className="flex items-center justify-between mb-[clamp(0.5rem,1.5vw,1rem)] flex-shrink-0">
         <Link href="/">
-          <Button variant="ghost" size="sm" className="px-[clamp(0.5rem,1.5vw,0.75rem)]">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="px-[clamp(0.5rem,1.5vw,0.75rem)]"
+          >
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden xs:inline ml-2">Back</span>
           </Button>
@@ -425,6 +442,8 @@ function PlayContent() {
               onCheckedChange={game.toggleTrainingMode}
             />
           </div>
+
+          <ThemeSwitcher />
 
           <Button
             variant="ghost"
@@ -570,7 +589,8 @@ function PlayContent() {
                     Clear Game History ({gameHistory.history.length} games)
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    This will permanently delete all game history and reset statistics.
+                    This will permanently delete all game history and reset
+                    statistics.
                   </p>
                 </div>
               </div>
@@ -613,7 +633,10 @@ function PlayContent() {
       </Dialog>
 
       {/* Clear History Confirmation Dialog */}
-      <Dialog open={showClearHistoryDialog} onOpenChange={setShowClearHistoryDialog}>
+      <Dialog
+        open={showClearHistoryDialog}
+        onOpenChange={setShowClearHistoryDialog}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -621,7 +644,9 @@ function PlayContent() {
               Clear Game History?
             </DialogTitle>
             <DialogDescription>
-              This will permanently delete all {gameHistory.history.length} game{gameHistory.history.length !== 1 ? "s" : ""} from your history and reset your statistics. This action cannot be undone.
+              This will permanently delete all {gameHistory.history.length} game
+              {gameHistory.history.length !== 1 ? "s" : ""} from your history
+              and reset your statistics. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:gap-2">

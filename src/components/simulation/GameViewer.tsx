@@ -1,13 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState, useRef } from "react";
-import { ChevronLeft, ChevronRight, Play, Pause, SkipBack, SkipForward } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Pause,
+  Play,
+  SkipBack,
+  SkipForward,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { GameBoard } from "@/components/game";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { ColumnIndex, GameState } from "@/engine/types";
 import type { SimulationResult } from "@/engine/simulation";
+import type { ColumnIndex, GameState } from "@/engine/types";
 
 interface GameViewerProps {
   result: SimulationResult;
@@ -44,9 +51,7 @@ export function GameViewer({ result, onClose }: GameViewerProps) {
 
   const handleNext = useCallback(() => {
     setIsPlaying(false);
-    setCurrentMoveIndex((prev) =>
-      Math.min(result.moves.length - 1, prev + 1),
-    );
+    setCurrentMoveIndex((prev) => Math.min(result.moves.length - 1, prev + 1));
   }, [result.moves.length]);
 
   const handlePlayPause = useCallback(() => {
@@ -59,11 +64,14 @@ export function GameViewer({ result, onClose }: GameViewerProps) {
     }
   }, [currentMoveIndex, result.moves.length]);
 
-  const handleSliderChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newIndex = parseInt(e.target.value, 10);
-    setCurrentMoveIndex(newIndex);
-    setIsPlaying(false); // Pause when manually adjusting slider
-  }, []);
+  const handleSliderChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newIndex = parseInt(e.target.value, 10);
+      setCurrentMoveIndex(newIndex);
+      setIsPlaying(false); // Pause when manually adjusting slider
+    },
+    [],
+  );
 
   const handleFirstMove = useCallback(() => {
     setIsPlaying(false);
@@ -100,20 +108,28 @@ export function GameViewer({ result, onClose }: GameViewerProps) {
   const currentMove = result.moves[currentMoveIndex];
   const isFirstMove = currentMoveIndex === 0;
   const isLastMove = currentMoveIndex >= result.moves.length - 1;
-  const isShowingFinalState = currentMoveIndex >= result.moves.length - 1 && result.finalState;
+  const isShowingFinalState =
+    currentMoveIndex >= result.moves.length - 1 && result.finalState;
 
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between mb-2 sm:mb-4 pb-2 sm:pb-4 border-b flex-shrink-0">
         <div className="min-w-0 flex-1">
-          <h3 className="font-semibold text-sm sm:text-base truncate">Game #{result.id}</h3>
+          <h3 className="font-semibold text-sm sm:text-base truncate">
+            Game #{result.id}
+          </h3>
           <p className="text-xs sm:text-sm text-muted-foreground truncate">
             {result.player1Strategy} vs {result.player2Strategy}
           </p>
         </div>
         {onClose && (
-          <Button variant="ghost" size="sm" onClick={onClose} className="ml-2 flex-shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="ml-2 flex-shrink-0"
+          >
             <span className="hidden sm:inline">Close</span>
             <span className="sm:hidden">✕</span>
           </Button>
@@ -143,20 +159,21 @@ export function GameViewer({ result, onClose }: GameViewerProps) {
         {/* Move Info */}
         {isShowingFinalState ? (
           <div className="text-center text-xs sm:text-sm">
-            <div className="text-muted-foreground">
-              Game Complete
-            </div>
+            <div className="text-muted-foreground">Game Complete</div>
             <div className="font-medium mt-1">
-              Final Score: {result.finalScore.player1} - {result.finalScore.player2}
+              Final Score: {result.finalScore.player1} -{" "}
+              {result.finalScore.player2}
             </div>
           </div>
         ) : currentMove ? (
           <div className="text-center text-xs sm:text-sm">
             <div className="text-muted-foreground">
-              Turn {currentMove.turn} - {currentMove.player === "player1" ? "Player 1" : "Player 2"}
+              Turn {currentMove.turn} -{" "}
+              {currentMove.player === "player1" ? "Player 1" : "Player 2"}
             </div>
             <div className="font-medium mt-1">
-              Rolled {currentMove.dieValue}, placed in column {currentMove.column + 1}
+              Rolled {currentMove.dieValue}, placed in column{" "}
+              {currentMove.column + 1}
             </div>
           </div>
         ) : null}
@@ -165,7 +182,9 @@ export function GameViewer({ result, onClose }: GameViewerProps) {
         {result.moves.length > 0 && (
           <div className="space-y-1.5 sm:space-y-2">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 text-xs text-muted-foreground">
-              <span>Move {currentMoveIndex + 1} of {result.moves.length}</span>
+              <span>
+                Move {currentMoveIndex + 1} of {result.moves.length}
+              </span>
               <span className="text-[10px] sm:text-xs">
                 {result.winner === "player1"
                   ? "Player 1 Wins"
@@ -196,9 +215,10 @@ export function GameViewer({ result, onClose }: GameViewerProps) {
                 onChange={handleSliderChange}
                 className="flex-1 h-2 cursor-pointer touch-none"
                 style={{
-                  background: result.moves.length > 1
-                    ? `linear-gradient(to right, hsl(var(--accent)) 0%, hsl(var(--accent)) ${(currentMoveIndex / (result.moves.length - 1)) * 100}%, hsl(var(--muted)) ${(currentMoveIndex / (result.moves.length - 1)) * 100}%, hsl(var(--muted)) 100%)`
-                    : undefined
+                  background:
+                    result.moves.length > 1
+                      ? `linear-gradient(to right, hsl(var(--accent)) 0%, hsl(var(--accent)) ${(currentMoveIndex / (result.moves.length - 1)) * 100}%, hsl(var(--muted)) ${(currentMoveIndex / (result.moves.length - 1)) * 100}%, hsl(var(--muted)) 100%)`
+                      : undefined,
                 }}
               />
               <Button
@@ -256,7 +276,9 @@ export function GameViewer({ result, onClose }: GameViewerProps) {
 
         {/* Speed Control */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2">
-          <Label className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">Speed:</Label>
+          <Label className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
+            Speed:
+          </Label>
           <div className="flex gap-1 flex-wrap justify-center">
             {[200, 500, 1000, 2000].map((speed) => (
               <Button

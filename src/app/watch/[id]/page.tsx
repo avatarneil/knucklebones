@@ -16,8 +16,9 @@ import { useEffect, useState } from "react";
 import { GameBoard } from "@/components/game";
 import { InstallPrompt } from "@/components/pwa";
 import { Button } from "@/components/ui/button";
-import { useOnlineStatus } from "@/hooks/usePWA";
+import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import type { GameState } from "@/engine/types";
+import { useOnlineStatus } from "@/hooks/usePWA";
 
 interface RoomState {
   roomId: string;
@@ -73,7 +74,7 @@ export default function WatchRoomPage() {
           gameType: data.gameType,
           watcherCount: data.watcherCount ?? 0,
         });
-        
+
         // Check if we're following (would need to be stored in room or checked separately)
         // For now, we'll check localStorage
         if (typeof window !== "undefined") {
@@ -93,7 +94,7 @@ export default function WatchRoomPage() {
 
   const handleFollow = async () => {
     if (!watcherToken || !roomId) return;
-    
+
     try {
       const response = await fetch(`/api/rooms/${roomId}/follow`, {
         method: "POST",
@@ -103,12 +104,15 @@ export default function WatchRoomPage() {
           watcherToken,
         }),
       });
-      
+
       const data = await response.json();
       if (data.success) {
         setIsFollowing(!isFollowing);
         if (typeof window !== "undefined") {
-          localStorage.setItem(`following_${roomId}`, (!isFollowing).toString());
+          localStorage.setItem(
+            `following_${roomId}`,
+            (!isFollowing).toString(),
+          );
         }
       }
     } catch (err) {
@@ -126,14 +130,14 @@ export default function WatchRoomPage() {
   // Check for new room if following (when game ends)
   useEffect(() => {
     if (!isFollowing || !roomState || roomState.state.phase !== "ended") return;
-    
+
     // When game ends and we're following, check for a new room after a delay
     // In a full implementation, you'd poll for new rooms from the same player
     const checkForNewRoom = setTimeout(() => {
       // This would check for a new room - for now, we'll just show a message
       // In production, you'd query for rooms with the same player1 name and newer timestamp
     }, 3000);
-    
+
     return () => clearTimeout(checkForNewRoom);
   }, [isFollowing, roomState]);
 
@@ -177,6 +181,7 @@ export default function WatchRoomPage() {
         </Link>
 
         <div className="flex items-center gap-2 sm:gap-4">
+          <ThemeSwitcher />
           <Button
             variant={isFollowing ? "default" : "outline"}
             size="sm"

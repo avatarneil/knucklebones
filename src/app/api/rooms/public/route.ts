@@ -5,15 +5,15 @@
  */
 
 import { NextResponse } from "next/server";
-import { getPublicRooms, getPublicRoomState } from "@/lib/kv";
+import { getPublicRoomState, getPublicRooms } from "@/lib/kv";
 
 export async function GET() {
   try {
     const rooms = await getPublicRooms();
-    
+
     // Return public state for each room (without sensitive data)
-    const publicRooms = rooms.map(room => getPublicRoomState(room));
-    
+    const publicRooms = rooms.map((room) => getPublicRoomState(room));
+
     return NextResponse.json({
       success: true,
       rooms: publicRooms,

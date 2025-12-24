@@ -6,11 +6,7 @@
 
 import { NextResponse } from "next/server";
 import { createInitialState } from "@/engine";
-import {
-  type GameRoom,
-  generateRoomCode,
-  setRoom,
-} from "@/lib/kv";
+import { type GameRoom, generateRoomCode, setRoom } from "@/lib/kv";
 
 interface CreateAIRoomRequest {
   playerName: string;
@@ -31,7 +27,7 @@ export async function POST(request: Request) {
     // Check if there's a previous room with followers to migrate
     // For now, we'll create a fresh room. In a full implementation,
     // you'd look up the previous room and migrate followers.
-    
+
     // Create the room (AI matches are always public)
     const room: GameRoom = {
       id: roomId,
