@@ -4,6 +4,7 @@
 
 let wasmModule: typeof import("../../../wasm/pkg/knucklebones_ai") | null = null;
 let aiEngine: any = null;
+let opponentProfile: any = null;
 let wasmInitialized = false;
 let wasmInitPromise: Promise<void> | null = null;
 
@@ -161,4 +162,146 @@ export function clearWasmCache(): void {
  */
 export function isWasmInitialized(): boolean {
   return wasmInitialized;
+}
+
+// ============================================================================
+// Master AI - Opponent Profile Functions
+// ============================================================================
+
+/**
+ * Get or create the global opponent profile (singleton pattern)
+ */
+export function getOpponentProfile(): any {
+  if (!ensureWasmReady() || !wasmModule) {
+    return null;
+  }
+  
+  if (!opponentProfile) {
+    try {
+      opponentProfile = new wasmModule.OpponentProfile();
+    } catch (error) {
+      console.warn("Failed to create opponent profile:", error);
+      return null;
+    }
+  }
+  
+  return opponentProfile;
+}
+
+/**
+ * Record an opponent move for learning
+ * @param col Column index (0-2)
+ * @param dieValue Die value placed (1-6)
+ * @param removedCount Number of dice removed from our grid
+ * @param scoreLost Points we lost from removed dice
+ */
+export function recordOpponentMove(
+  col: 0 | 1 | 2,
+  dieValue: 1 | 2 | 3 | 4 | 5 | 6,
+  removedCount: number,
+  scoreLost: number,
+): void {
+  const profile = getOpponentProfile();
+  if (!profile) return;
+  
+  try {
+    profile.record_move(col, dieValue, removedCount, scoreLost);
+  } catch (error) {
+    console.warn("Failed to record opponent move:", error);
+  }
+}
+
+/**
+ * Mark end of game for stability tracking
+ */
+export function endProfileGame(): void {
+  const profile = getOpponentProfile();
+  if (!profile) return;
+  
+  try {
+    profile.end_game();
+  } catch (error) {
+    console.warn("Failed to end profile game:", error);
+  }
+}
+
+/**
+ * Reset all learned data in the opponent profile
+ */
+export function resetOpponentProfile(): void {
+  const profile = getOpponentProfile();
+  if (!profile) return;
+  
+  try {
+    profile.reset();
+  } catch (error) {
+    console.warn("Failed to reset opponent profile:", error);
+  }
+}
+
+/**
+ * Get profile statistics for UI display
+ */
+export function getProfileStats(): {
+  gamesCompleted: number;
+  totalMoves: number;
+  attackRate: number;
+  columnFrequencies: [number, number, number];
+} | null {
+  const profile = getOpponentProfile();
+  if (!profile) return null;
+  
+  try {
+    return {
+      gamesCompleted: profile.get_games_completed(),
+      totalMoves: profile.get_total_moves(),
+      attackRate: profile.get_attack_rate(),
+      columnFrequencies: [
+        profile.get_column_frequency(0),
+        profile.get_column_frequency(1),
+        profile.get_column_frequency(2),
+      ],
+    };
+  } catch (error) {
+    console.warn("Failed to get profile stats:", error);
+    return null;
+  }
+}
+
+/**
+ * Get the best move using Master AI with adaptive opponent modeling
+ */
+export function getMasterMoveWasm(
+  grid1: (1 | 2 | 3 | 4 | 5 | 6 | null)[][],
+  grid2: (1 | 2 | 3 | 4 | 5 | 6 | null)[][],
+  currentPlayer: "player1" | "player2",
+  currentDie: 1 | 2 | 3 | 4 | 5 | 6,
+): number | null {
+  if (!ensureWasmReady() || !aiEngine) {
+    return null;
+  }
+  
+  const profile = getOpponentProfile();
+  if (!profile) {
+    return null;
+  }
+  
+  try {
+    const grid1Arr = gridToArray(grid1);
+    const grid2Arr = gridToArray(grid2);
+    const playerNum = currentPlayer === "player1" ? 0 : 1;
+    
+    const result = aiEngine.get_master_move(
+      grid1Arr,
+      grid2Arr,
+      playerNum,
+      currentDie,
+      profile,
+    );
+    
+    return result === -1 ? null : result;
+  } catch (error) {
+    console.warn("WASM master move calculation failed:", error);
+    return null;
+  }
 }

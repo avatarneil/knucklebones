@@ -27,6 +27,14 @@ export {
   getGreedyMove,
   getAllDifficultyLevels,
   getDifficultyConfig,
+  // Master AI
+  getMasterMove,
+  getMasterProfileStats,
+  resetMasterProfile,
+  recordOpponentMoveForLearning,
+  endMasterGame,
+  isMasterReady,
+  type MasterProfileStats,
 } from "./ai";
 // Moves
 export {

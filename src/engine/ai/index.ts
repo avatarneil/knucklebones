@@ -21,10 +21,30 @@ import {
   clearWasmCache,
   isWasmInitialized,
 } from "./wasm-bindings";
+import {
+  getMasterMove,
+  getMasterProfileStats,
+  resetMasterProfile,
+  recordOpponentMoveForLearning,
+  endMasterGame,
+  isMasterReady,
+  type MasterProfileStats,
+} from "./master";
 
 export { DIFFICULTY_CONFIGS, getDifficultyConfig, getAllDifficultyLevels };
 export { clearTranspositionTable };
 export { getGreedyMove };
+
+// Master AI exports
+export {
+  getMasterMove,
+  getMasterProfileStats,
+  resetMasterProfile,
+  recordOpponentMoveForLearning,
+  endMasterGame,
+  isMasterReady,
+  type MasterProfileStats,
+};
 
 // Initialize WASM on module load (non-blocking, background, client-side only)
 // Only initialize on client side to avoid SSR issues
@@ -70,6 +90,15 @@ export class AIPlayer {
    */
   chooseMove(state: GameState, opponentDifficulty?: DifficultyLevel): ColumnIndex | null {
     try {
+      // Handle Master AI specially - uses adaptive learning
+      if (this.difficulty === "master") {
+        const masterMove = getMasterMove(state);
+        if (masterMove !== null) {
+          return masterMove;
+        }
+        // Fall through to expert-level play if Master AI not ready
+      }
+      
       const config = getDifficultyConfig(this.difficulty);
       const opponentConfig = opponentDifficulty ? getDifficultyConfig(opponentDifficulty) : undefined;
       
@@ -177,6 +206,15 @@ export function getAIMove(
   opponentDifficulty?: DifficultyLevel,
 ): ColumnIndex | null {
   try {
+    // Handle Master AI specially - uses adaptive learning
+    if (difficulty === "master") {
+      const masterMove = getMasterMove(state);
+      if (masterMove !== null) {
+        return masterMove;
+      }
+      // Fall through to expert-level play if Master AI not ready
+    }
+    
     const config = getDifficultyConfig(difficulty);
     const opponentConfig = opponentDifficulty ? getDifficultyConfig(opponentDifficulty) : undefined;
     

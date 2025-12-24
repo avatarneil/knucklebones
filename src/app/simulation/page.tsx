@@ -2,7 +2,9 @@
 
 import {
   ArrowLeft,
+  Brain,
   Play,
+  RotateCcw,
   Square,
   TrendingUp,
   Trophy,
@@ -39,9 +41,12 @@ import {
   DIFFICULTY_CONFIGS,
   runSimulation,
   SimulationController,
+  getMasterProfileStats,
+  resetMasterProfile,
   type DifficultyLevel,
   type SimulationResult,
   type SimulationStats,
+  type MasterProfileStats,
 } from "@/engine";
 
 function SimulationContent() {
@@ -64,7 +69,35 @@ function SimulationContent() {
   const [results, setResults] = useState<SimulationResult[]>([]);
   const [selectedGame, setSelectedGame] = useState<SimulationResult | null>(null);
   const [showViewer, setShowViewer] = useState(false);
+  const [masterStats, setMasterStats] = useState<MasterProfileStats | null>(null);
   const controllerRef = useRef<SimulationController | null>(null);
+  
+  // Check if Master AI is selected
+  const hasMasterAI = player1Strategy === "master" || player2Strategy === "master";
+  
+  // Update Master AI stats periodically when Master is selected
+  useEffect(() => {
+    if (!hasMasterAI) {
+      setMasterStats(null);
+      return;
+    }
+    
+    // Initial fetch
+    setMasterStats(getMasterProfileStats());
+    
+    // Update every second while simulation is running
+    if (isRunning) {
+      const interval = setInterval(() => {
+        setMasterStats(getMasterProfileStats());
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [hasMasterAI, isRunning, stats.completedGames]);
+  
+  const handleResetMaster = useCallback(() => {
+    resetMasterProfile();
+    setMasterStats(getMasterProfileStats());
+  }, []);
 
   const handleStart = useCallback(async () => {
     setIsRunning(true);
@@ -255,6 +288,61 @@ function SimulationContent() {
                 </Button>
               )}
             </div>
+            
+            {/* Master AI Status */}
+            {hasMasterAI && masterStats && (
+              <div className="pt-4 border-t space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-purple-500" />
+                    <span className="font-medium text-sm">Master AI Learning</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResetMaster}
+                    disabled={isRunning}
+                    className="h-7 text-xs"
+                  >
+                    <RotateCcw className="mr-1 h-3 w-3" />
+                    Reset
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="bg-muted/50 rounded p-2">
+                    <div className="text-muted-foreground">Games Learned</div>
+                    <div className="font-medium text-lg">{masterStats.gamesCompleted}</div>
+                  </div>
+                  <div className="bg-muted/50 rounded p-2">
+                    <div className="text-muted-foreground">Moves Analyzed</div>
+                    <div className="font-medium text-lg">{masterStats.totalMoves}</div>
+                  </div>
+                </div>
+                
+                {masterStats.hasLearned ? (
+                  <div className="text-xs space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Opponent Attack Rate:</span>
+                      <span className="font-medium">{(masterStats.attackRate * 100).toFixed(1)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Column Bias:</span>
+                      <span className="font-mono text-[10px]">
+                        [{masterStats.columnFrequencies.map(f => (f * 100).toFixed(0)).join("%, ")}%]
+                      </span>
+                    </div>
+                    <div className="text-green-600 dark:text-green-400 font-medium mt-2">
+                      Adaptive strategy active
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-xs text-muted-foreground">
+                    Needs 3+ games and 10+ moves to activate adaptive strategy
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 

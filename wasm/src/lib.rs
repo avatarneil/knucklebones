@@ -754,4 +754,329 @@ impl AIEngine {
         
         best_move
     }
+    
+    /// Get the best move using Master AI with adaptive weights from opponent profile
+    #[wasm_bindgen]
+    pub fn get_master_move(
+        &mut self,
+        grid1: &[u8],
+        grid2: &[u8],
+        current_player: u8,
+        current_die: u8,
+        profile: &OpponentProfile,
+    ) -> i32 {
+        // Convert from JS arrays to GameState
+        let mut state = GameState {
+            grid1: Grid { data: [0; 9] },
+            grid2: Grid { data: [0; 9] },
+            current_player: if current_player == 0 { Player::Player1 } else { Player::Player2 },
+            current_die: if current_die == 0 { None } else { Some(current_die) },
+            phase: if current_die == 0 { GamePhase::Rolling } else { GamePhase::Placing },
+            turn_number: 1,
+        };
+        
+        // Copy grid data
+        let len1 = grid1.len().min(9);
+        for i in 0..len1 {
+            state.grid1.data[i] = grid1[i];
+        }
+        for i in len1..9 {
+            state.grid1.data[i] = 0;
+        }
+        let len2 = grid2.len().min(9);
+        for i in 0..len2 {
+            state.grid2.data[i] = grid2[i];
+        }
+        for i in len2..9 {
+            state.grid2.data[i] = 0;
+        }
+        
+        if state.phase != GamePhase::Placing || state.current_die.is_none() {
+            return -1;
+        }
+        
+        let player = state.current_player;
+        let grid = match player {
+            Player::Player1 => &state.grid1,
+            Player::Player2 => &state.grid2,
+        };
+        
+        let legal_columns: Vec<usize> = (0..3)
+            .filter(|&col| !grid.is_column_full(col))
+            .collect();
+        
+        if legal_columns.is_empty() {
+            return -1;
+        }
+        
+        if legal_columns.len() == 1 {
+            return legal_columns[0] as i32;
+        }
+        
+        // Get adaptive config from profile
+        let adaptive_config = profile.get_adaptive_config();
+        
+        // Use expert-level opponent modeling
+        let opponent_config = DifficultyConfig {
+            depth: 3,
+            randomness: 0.0,
+            offense_weight: 0.5,
+            defense_weight: 0.5,
+            advanced_eval: true,
+        };
+        
+        // Order moves with adaptive bias from profile
+        let ordered = order_moves_with_profile(&state, &legal_columns, player, profile);
+        let mut best_move: i32 = -1;
+        let mut best_value = f64::NEG_INFINITY;
+        
+        for col in ordered {
+            if let Some(new_state) = apply_move(&state, col) {
+                let base_value = if new_state.phase == GamePhase::Ended {
+                    evaluate(&new_state, player, &adaptive_config)
+                } else {
+                    chance_node(&new_state, adaptive_config.depth - 1, player, &adaptive_config, &opponent_config, &mut self.ctx)
+                };
+                
+                // Apply column bias from learned opponent patterns
+                let column_bias = profile.get_column_attack_bonus(col);
+                let value = base_value + column_bias;
+                
+                if value > best_value {
+                    best_value = value;
+                    best_move = col as i32;
+                }
+            }
+        }
+        
+        if best_move == -1 {
+            best_move = legal_columns[0] as i32;
+        }
+        
+        best_move
+    }
+}
+
+// ============================================================================
+// Master AI - Opponent Profile for Adaptive Learning
+// ============================================================================
+
+/// Opponent behavior profile that learns patterns across games
+#[wasm_bindgen]
+pub struct OpponentProfile {
+    // Column usage frequency [col0, col1, col2]
+    column_usage: [u32; 3],
+    total_moves: u32,
+    
+    // Attack stats: times opponent removed dice
+    attack_moves: u32,
+    
+    // Die placement patterns by column
+    // High dice (5-6) placements per column
+    high_dice_placements: [u32; 3],
+    // Low dice (1-2) placements per column
+    low_dice_placements: [u32; 3],
+    
+    // Total score lost to opponent attacks (for defense learning)
+    score_lost_to_attacks: u32,
+    
+    // Games completed for stability weighting
+    games_completed: u32,
+}
+
+#[wasm_bindgen]
+impl OpponentProfile {
+    /// Create a new empty opponent profile
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        OpponentProfile {
+            column_usage: [0; 3],
+            total_moves: 0,
+            attack_moves: 0,
+            high_dice_placements: [0; 3],
+            low_dice_placements: [0; 3],
+            score_lost_to_attacks: 0,
+            games_completed: 0,
+        }
+    }
+    
+    /// Record an opponent move for learning
+    /// - col: column index (0-2)
+    /// - die_value: die value placed (1-6)
+    /// - removed_count: number of dice removed from our grid
+    /// - score_lost: points we lost from removed dice
+    #[wasm_bindgen]
+    pub fn record_move(&mut self, col: u8, die_value: u8, removed_count: u8, score_lost: u32) {
+        if col > 2 || die_value == 0 || die_value > 6 {
+            return;
+        }
+        
+        let col_idx = col as usize;
+        
+        // Track column usage
+        self.column_usage[col_idx] += 1;
+        self.total_moves += 1;
+        
+        // Track attacks
+        if removed_count > 0 {
+            self.attack_moves += 1;
+            self.score_lost_to_attacks += score_lost;
+        }
+        
+        // Track die value patterns
+        if die_value >= 5 {
+            self.high_dice_placements[col_idx] += 1;
+        } else if die_value <= 2 {
+            self.low_dice_placements[col_idx] += 1;
+        }
+    }
+    
+    /// Mark end of game for stability tracking
+    #[wasm_bindgen]
+    pub fn end_game(&mut self) {
+        self.games_completed += 1;
+    }
+    
+    /// Reset all learned data
+    #[wasm_bindgen]
+    pub fn reset(&mut self) {
+        self.column_usage = [0; 3];
+        self.total_moves = 0;
+        self.attack_moves = 0;
+        self.high_dice_placements = [0; 3];
+        self.low_dice_placements = [0; 3];
+        self.score_lost_to_attacks = 0;
+        self.games_completed = 0;
+    }
+    
+    /// Get the number of games completed
+    #[wasm_bindgen]
+    pub fn get_games_completed(&self) -> u32 {
+        self.games_completed
+    }
+    
+    /// Get total moves recorded
+    #[wasm_bindgen]
+    pub fn get_total_moves(&self) -> u32 {
+        self.total_moves
+    }
+    
+    /// Get attack rate (0.0 to 1.0)
+    #[wasm_bindgen]
+    pub fn get_attack_rate(&self) -> f64 {
+        if self.total_moves == 0 {
+            return 0.0;
+        }
+        self.attack_moves as f64 / self.total_moves as f64
+    }
+    
+    /// Get column usage frequency for a column (0.0 to 1.0)
+    #[wasm_bindgen]
+    pub fn get_column_frequency(&self, col: u8) -> f64 {
+        if self.total_moves == 0 || col > 2 {
+            return 0.333; // Default to uniform
+        }
+        self.column_usage[col as usize] as f64 / self.total_moves as f64
+    }
+}
+
+impl OpponentProfile {
+    /// Calculate adaptive difficulty config based on learned patterns
+    fn get_adaptive_config(&self) -> DifficultyConfig {
+        // Base expert-level config
+        let mut config = DifficultyConfig {
+            depth: 5,
+            randomness: 0.0,
+            offense_weight: 0.5,
+            defense_weight: 0.5,
+            advanced_eval: true,
+        };
+        
+        // Need sufficient data for adaptation (medium stability)
+        if self.games_completed < 3 || self.total_moves < 10 {
+            return config;
+        }
+        
+        // Calculate opponent's attack rate
+        let attack_rate = self.get_attack_rate();
+        
+        // If opponent is aggressive (attacks often), increase our defense
+        // If opponent is passive, we can be more offensive
+        if attack_rate > 0.4 {
+            // Opponent is aggressive - defend more
+            config.defense_weight = 0.6 + (attack_rate - 0.4) * 0.5;
+            config.offense_weight = 1.0 - config.defense_weight;
+        } else if attack_rate < 0.2 {
+            // Opponent is passive - attack more
+            config.offense_weight = 0.7;
+            config.defense_weight = 0.3;
+        }
+        
+        config
+    }
+    
+    /// Get bonus for attacking a specific column based on opponent patterns
+    fn get_column_attack_bonus(&self, col: usize) -> f64 {
+        if self.total_moves < 10 || col > 2 {
+            return 0.0;
+        }
+        
+        // Calculate opponent's preference for this column
+        let col_freq = self.column_usage[col] as f64 / self.total_moves as f64;
+        let expected_freq = 0.333;
+        
+        // If opponent uses this column more than average, attacking it is valuable
+        // because we can disrupt their patterns
+        let preference_delta = col_freq - expected_freq;
+        
+        // Also consider where opponent places high dice - those are valuable targets
+        let total_high_dice: u32 = self.high_dice_placements.iter().sum();
+        let high_dice_ratio = if total_high_dice > 0 {
+            self.high_dice_placements[col] as f64 / total_high_dice as f64
+        } else {
+            0.333
+        };
+        
+        // Weight: favor columns where opponent places high dice
+        let high_dice_bonus = (high_dice_ratio - 0.333) * 5.0;
+        
+        // Combined bonus (scaled for impact)
+        preference_delta * 3.0 + high_dice_bonus
+    }
+    
+    /// Order columns with profile-based bias (best targets first)
+    fn get_column_priorities(&self) -> [usize; 3] {
+        let mut cols: [(usize, f64); 3] = [
+            (0, self.get_column_attack_bonus(0)),
+            (1, self.get_column_attack_bonus(1)),
+            (2, self.get_column_attack_bonus(2)),
+        ];
+        
+        // Sort by bonus descending
+        cols.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        
+        [cols[0].0, cols[1].0, cols[2].0]
+    }
+}
+
+/// Order moves considering both quick evaluation and profile-based bias
+fn order_moves_with_profile(
+    state: &GameState, 
+    columns: &[usize], 
+    player: Player,
+    profile: &OpponentProfile,
+) -> Vec<usize> {
+    if let Some(die_value) = state.current_die {
+        let mut scored: Vec<(usize, f64)> = columns.iter()
+            .map(|&col| {
+                let base_score = evaluate_move_quick(state, col, die_value, player);
+                let profile_bonus = profile.get_column_attack_bonus(col);
+                (col, base_score + profile_bonus * 2.0)
+            })
+            .collect();
+        scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        scored.into_iter().map(|(col, _)| col).collect()
+    } else {
+        columns.to_vec()
+    }
 }

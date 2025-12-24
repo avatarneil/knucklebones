@@ -1,14 +1,15 @@
 /**
  * Mass Simulation Engine
  * 
- * Runs multiple games in parallel and tracks results
+ * Runs multiple games in parallel and tracks results.
+ * Supports Master AI learning mode for adaptive opponent modeling.
  */
 
-import { getAIMove } from "./ai";
+import { getAIMove, recordOpponentMoveForLearning, endMasterGame } from "./ai";
 import { applyMove, rollDie } from "./moves";
 import { calculateGridScore } from "./scorer";
 import { createInitialState } from "./state";
-import type { DifficultyLevel, GameState, Player } from "./types";
+import type { ColumnIndex, DieValue, DifficultyLevel, GameState, Player } from "./types";
 
 export interface SimulationResult {
   id: number;
@@ -52,7 +53,25 @@ export interface SimulationConfig {
 }
 
 /**
+ * Determine if Master AI is involved in the simulation
+ */
+function hasMasterAI(player1Strategy: DifficultyLevel, player2Strategy: DifficultyLevel): {
+  isMasterPlayer1: boolean;
+  isMasterPlayer2: boolean;
+  hasMaster: boolean;
+} {
+  const isMasterPlayer1 = player1Strategy === "master";
+  const isMasterPlayer2 = player2Strategy === "master";
+  return {
+    isMasterPlayer1,
+    isMasterPlayer2,
+    hasMaster: isMasterPlayer1 || isMasterPlayer2,
+  };
+}
+
+/**
  * Simulate a single game between two AI players
+ * Supports Master AI learning - records opponent moves for the Master to learn from
  */
 async function simulateSingleGame(
   id: number,
@@ -64,6 +83,9 @@ async function simulateSingleGame(
   const moves: SimulationResult["moves"] = [];
   let turnCount = 0;
   let moveCount = 0;
+  
+  // Check if Master AI is involved for learning
+  const { isMasterPlayer1, isMasterPlayer2, hasMaster } = hasMasterAI(player1Strategy, player2Strategy);
 
   // Run the game until completion
   while (state.phase !== "ended") {
@@ -82,6 +104,24 @@ async function simulateSingleGame(
     if (move === null) {
       // No legal moves - should not happen, but handle gracefully
       break;
+    }
+    
+    // For Master AI learning: record the OPPONENT's move
+    // If Master is player1, we learn from player2's moves (and vice versa)
+    if (hasMaster) {
+      const isOpponentOfMaster = 
+        (isMasterPlayer1 && state.currentPlayer === "player2") ||
+        (isMasterPlayer2 && state.currentPlayer === "player1");
+      
+      if (isOpponentOfMaster && state.currentDie !== null) {
+        // Record this move for the Master AI to learn from
+        recordOpponentMoveForLearning(
+          state,
+          move as ColumnIndex,
+          state.currentDie as DieValue,
+          state.currentPlayer, // The opponent player
+        );
+      }
     }
 
     // Record move before applying
@@ -104,13 +144,18 @@ async function simulateSingleGame(
     moveCount++;
 
     // Yield control to UI thread every few moves to prevent blocking
-    // For hard/expert difficulties, yield more frequently due to heavy computation
-    const isHardDifficulty = currentStrategy === "hard" || currentStrategy === "expert";
+    // For hard/expert/master difficulties, yield more frequently due to heavy computation
+    const isHardDifficulty = currentStrategy === "hard" || currentStrategy === "expert" || currentStrategy === "master";
     const yieldInterval = isHardDifficulty ? 1 : 3;
     
     if (moveCount % yieldInterval === 0) {
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
+  }
+  
+  // Mark game end for Master AI profile stability tracking
+  if (hasMaster) {
+    endMasterGame();
   }
 
   const scores = {
@@ -192,6 +237,13 @@ function getConcurrency(
 ): number {
   const isExpert = (strategy: DifficultyLevel) => strategy === "expert";
   const isHard = (strategy: DifficultyLevel) => strategy === "hard";
+  const isMaster = (strategy: DifficultyLevel) => strategy === "master";
+
+  // Master AI must run sequentially to properly learn from each game
+  // (profile updates need to happen in order)
+  if (isMaster(player1Strategy) || isMaster(player2Strategy)) {
+    return 1;
+  }
 
   // Expert difficulty is extremely computationally intensive - run sequentially
   if (isExpert(player1Strategy) || isExpert(player2Strategy)) {
@@ -265,11 +317,11 @@ export async function runSimulation(
     }
 
     // Yield control to UI thread between batches
-    // For hard/expert difficulties, add a small delay to give UI more breathing room
+    // For hard/expert/master difficulties, add a small delay to give UI more breathing room
     const isHardDifficulty = 
-      player1Strategy === "hard" || player1Strategy === "expert" ||
-      player2Strategy === "hard" || player2Strategy === "expert";
-    const delay = isHardDifficulty ? 10 : 0; // 10ms delay for hard/expert
+      player1Strategy === "hard" || player1Strategy === "expert" || player1Strategy === "master" ||
+      player2Strategy === "hard" || player2Strategy === "expert" || player2Strategy === "master";
+    const delay = isHardDifficulty ? 10 : 0; // 10ms delay for hard/expert/master
     await new Promise((resolve) => setTimeout(resolve, delay));
   }
 
