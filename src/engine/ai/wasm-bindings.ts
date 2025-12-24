@@ -5,9 +5,15 @@
 let wasmModule: typeof import("../../../wasm/pkg/knucklebones_ai") | null =
   null;
 let aiEngine: any = null;
-let opponentProfile: any = null;
+// Separate opponent profiles for each player's perspective
+// player1Profile: tracks player2's behavior (used when player1 is Master AI)
+// player2Profile: tracks player1's behavior (used when player2 is Master AI)
+let player1Profile: any = null;
+let player2Profile: any = null;
 let wasmInitialized = false;
 let wasmInitPromise: Promise<void> | null = null;
+
+export type ProfileOwner = "player1" | "player2";
 
 /**
  * Initialize the WASM module (called automatically on first use)
@@ -173,39 +179,58 @@ export function isWasmInitialized(): boolean {
 // ============================================================================
 
 /**
- * Get or create the global opponent profile (singleton pattern)
+ * Get or create the opponent profile for a specific player's perspective.
+ * Each Master AI player has their own profile to track their opponent's behavior.
+ *
+ * @param owner The player whose perspective this profile represents.
+ *              "player1" = profile that tracks player2's behavior (for player1's Master AI)
+ *              "player2" = profile that tracks player1's behavior (for player2's Master AI)
  */
-export function getOpponentProfile(): any {
+export function getOpponentProfile(owner: ProfileOwner): any {
   if (!ensureWasmReady() || !wasmModule) {
     return null;
   }
 
-  if (!opponentProfile) {
+  if (owner === "player1") {
+    if (!player1Profile) {
+      try {
+        player1Profile = new wasmModule.OpponentProfile();
+      } catch (error) {
+        console.warn("Failed to create player1 opponent profile:", error);
+        return null;
+      }
+    }
+    return player1Profile;
+  }
+
+  // owner === "player2"
+  if (!player2Profile) {
     try {
-      opponentProfile = new wasmModule.OpponentProfile();
+      player2Profile = new wasmModule.OpponentProfile();
     } catch (error) {
-      console.warn("Failed to create opponent profile:", error);
+      console.warn("Failed to create player2 opponent profile:", error);
       return null;
     }
   }
-
-  return opponentProfile;
+  return player2Profile;
 }
 
 /**
  * Record an opponent move for learning
+ * @param owner The player whose profile should record this move (the Master AI player)
  * @param col Column index (0-2)
  * @param dieValue Die value placed (1-6)
  * @param removedCount Number of dice removed from our grid
  * @param scoreLost Points we lost from removed dice
  */
 export function recordOpponentMove(
+  owner: ProfileOwner,
   col: 0 | 1 | 2,
   dieValue: 1 | 2 | 3 | 4 | 5 | 6,
   removedCount: number,
   scoreLost: number,
 ): void {
-  const profile = getOpponentProfile();
+  const profile = getOpponentProfile(owner);
   if (!profile) return;
 
   try {
@@ -217,42 +242,73 @@ export function recordOpponentMove(
 
 /**
  * Mark end of game for stability tracking
+ * @param owner The player whose profile should be updated (or undefined to update both)
  */
-export function endProfileGame(): void {
-  const profile = getOpponentProfile();
-  if (!profile) return;
+export function endProfileGame(owner?: ProfileOwner): void {
+  if (owner) {
+    const profile = getOpponentProfile(owner);
+    if (!profile) return;
 
-  try {
-    profile.end_game();
-  } catch (error) {
-    console.warn("Failed to end profile game:", error);
+    try {
+      profile.end_game();
+    } catch (error) {
+      console.warn(`Failed to end profile game for ${owner}:`, error);
+    }
+  } else {
+    // End game for both profiles (for backwards compatibility and when both are Master AI)
+    for (const p of ["player1", "player2"] as ProfileOwner[]) {
+      const profile = getOpponentProfile(p);
+      if (profile) {
+        try {
+          profile.end_game();
+        } catch (error) {
+          console.warn(`Failed to end profile game for ${p}:`, error);
+        }
+      }
+    }
   }
 }
 
 /**
  * Reset all learned data in the opponent profile
+ * @param owner The player whose profile should be reset (or undefined to reset both)
  */
-export function resetOpponentProfile(): void {
-  const profile = getOpponentProfile();
-  if (!profile) return;
+export function resetOpponentProfile(owner?: ProfileOwner): void {
+  if (owner) {
+    const profile = getOpponentProfile(owner);
+    if (!profile) return;
 
-  try {
-    profile.reset();
-  } catch (error) {
-    console.warn("Failed to reset opponent profile:", error);
+    try {
+      profile.reset();
+    } catch (error) {
+      console.warn(`Failed to reset opponent profile for ${owner}:`, error);
+    }
+  } else {
+    // Reset both profiles (for backwards compatibility)
+    for (const p of ["player1", "player2"] as ProfileOwner[]) {
+      const profile = getOpponentProfile(p);
+      if (profile) {
+        try {
+          profile.reset();
+        } catch (error) {
+          console.warn(`Failed to reset opponent profile for ${p}:`, error);
+        }
+      }
+    }
   }
 }
 
 /**
  * Get profile statistics for UI display
+ * @param owner The player whose profile stats to get
  */
-export function getProfileStats(): {
+export function getProfileStats(owner: ProfileOwner): {
   gamesCompleted: number;
   totalMoves: number;
   attackRate: number;
   columnFrequencies: [number, number, number];
 } | null {
-  const profile = getOpponentProfile();
+  const profile = getOpponentProfile(owner);
   if (!profile) return null;
 
   try {
@@ -267,13 +323,14 @@ export function getProfileStats(): {
       ],
     };
   } catch (error) {
-    console.warn("Failed to get profile stats:", error);
+    console.warn(`Failed to get profile stats for ${owner}:`, error);
     return null;
   }
 }
 
 /**
- * Get the best move using Master AI with adaptive opponent modeling
+ * Get the best move using Master AI with adaptive opponent modeling.
+ * Uses the profile for the current player's perspective (tracking their opponent).
  */
 export function getMasterMoveWasm(
   grid1: (1 | 2 | 3 | 4 | 5 | 6 | null)[][],
@@ -285,7 +342,8 @@ export function getMasterMoveWasm(
     return null;
   }
 
-  const profile = getOpponentProfile();
+  // Use the current player's profile (which tracks their opponent's behavior)
+  const profile = getOpponentProfile(currentPlayer);
   if (!profile) {
     return null;
   }

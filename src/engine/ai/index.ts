@@ -21,6 +21,7 @@ import {
   getMasterProfileStats,
   isMasterReady,
   type MasterProfileStats,
+  type ProfileOwner,
   recordOpponentMoveForLearning,
   resetMasterProfile,
 } from "./master";
@@ -44,6 +45,7 @@ export {
   endMasterGame,
   isMasterReady,
   type MasterProfileStats,
+  type ProfileOwner,
 };
 
 // Initialize WASM on module load (non-blocking, background, client-side only)

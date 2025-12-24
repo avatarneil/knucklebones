@@ -122,20 +122,28 @@ async function simulateSingleGame(
       break;
     }
 
-    // For Master AI learning: record the OPPONENT's move
-    // If Master is player1, we learn from player2's moves (and vice versa)
-    if (hasMasterPlayer) {
-      const isOpponentOfMaster =
-        (isMasterPlayer1 && state.currentPlayer === "player2") ||
-        (isMasterPlayer2 && state.currentPlayer === "player1");
-
-      if (isOpponentOfMaster && state.currentDie !== null) {
-        // Record this move for the Master AI to learn from
+    // For Master AI learning: record the OPPONENT's move to the correct profile
+    // Each Master AI learns from their opponent's moves independently
+    if (hasMasterPlayer && state.currentDie !== null) {
+      // If player1 is Master AI and player2 is making a move, record it for player1's learning
+      if (isMasterPlayer1 && state.currentPlayer === "player2") {
         recordOpponentMoveForLearning(
           state,
           move as ColumnIndex,
           state.currentDie as DieValue,
-          state.currentPlayer, // The opponent player
+          "player2", // The opponent making the move
+          "player1", // The Master AI learning from it
+        );
+      }
+
+      // If player2 is Master AI and player1 is making a move, record it for player2's learning
+      if (isMasterPlayer2 && state.currentPlayer === "player1") {
+        recordOpponentMoveForLearning(
+          state,
+          move as ColumnIndex,
+          state.currentDie as DieValue,
+          "player1", // The opponent making the move
+          "player2", // The Master AI learning from it
         );
       }
     }

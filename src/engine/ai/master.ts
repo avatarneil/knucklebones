@@ -17,9 +17,13 @@ import {
   getOpponentProfile,
   getProfileStats,
   isWasmInitialized,
+  type ProfileOwner,
   recordOpponentMove,
   resetOpponentProfile as resetWasmProfile,
 } from "./wasm-bindings";
+
+// Re-export ProfileOwner for use by other modules
+export type { ProfileOwner };
 
 export interface MasterProfileStats {
   gamesCompleted: number;
@@ -30,10 +34,13 @@ export interface MasterProfileStats {
 }
 
 /**
- * Get statistics from the opponent profile
+ * Get statistics from the opponent profile for a specific player's perspective.
+ * @param owner The player whose profile stats to get (defaults to "player1" for backward compatibility)
  */
-export function getMasterProfileStats(): MasterProfileStats {
-  const stats = getProfileStats();
+export function getMasterProfileStats(
+  owner: ProfileOwner = "player1",
+): MasterProfileStats {
+  const stats = getProfileStats(owner);
 
   if (!stats) {
     return {
@@ -53,28 +60,35 @@ export function getMasterProfileStats(): MasterProfileStats {
 
 /**
  * Reset the opponent profile (clear all learned data)
+ * @param owner The player whose profile to reset (or undefined to reset both)
  */
-export function resetMasterProfile(): void {
-  resetWasmProfile();
+export function resetMasterProfile(owner?: ProfileOwner): void {
+  resetWasmProfile(owner);
 }
 
 /**
- * Record an opponent move for the Master AI to learn from
+ * Record an opponent move for the Master AI to learn from.
  *
  * @param state The game state BEFORE the move was applied
  * @param column The column where the opponent placed their die
  * @param dieValue The die value that was placed
- * @param opponentPlayer Which player is the opponent
+ * @param opponentPlayer Which player made the move (the opponent of the Master AI)
+ * @param masterPlayer Which player is the Master AI that should learn from this move
+ *                     (defaults to the opposite of opponentPlayer for backward compatibility)
  */
 export function recordOpponentMoveForLearning(
   state: GameState,
   column: ColumnIndex,
   dieValue: DieValue,
   opponentPlayer: Player,
+  masterPlayer?: Player,
 ): void {
-  // Calculate how many dice were removed and score lost
-  const masterPlayer = opponentPlayer === "player1" ? "player2" : "player1";
-  const masterGrid = state.grids[masterPlayer];
+  // Determine which Master AI should learn from this move
+  const learningPlayer: Player =
+    masterPlayer ?? (opponentPlayer === "player1" ? "player2" : "player1");
+
+  // Calculate how many dice were removed and score lost from the Master's perspective
+  const masterGrid = state.grids[learningPlayer];
   const masterColumn = masterGrid[column];
 
   // Count matching dice that will be removed
@@ -91,15 +105,16 @@ export function recordOpponentMoveForLearning(
   const scoreAfter = calculateColumnScoreSimple(diceAfterRemoval);
   scoreLost = scoreBefore - scoreAfter;
 
-  // Record the move
-  recordOpponentMove(column, dieValue, removedCount, scoreLost);
+  // Record the move to the Master AI's profile
+  recordOpponentMove(learningPlayer, column, dieValue, removedCount, scoreLost);
 }
 
 /**
  * Mark end of game for the Master AI profile
+ * @param owner The player whose profile to update (or undefined to update both)
  */
-export function endMasterGame(): void {
-  endProfileGame();
+export function endMasterGame(owner?: ProfileOwner): void {
+  endProfileGame(owner);
 }
 
 /**
@@ -122,9 +137,10 @@ export function getMasterMove(state: GameState): ColumnIndex | null {
 
 /**
  * Check if the Master AI is ready to use
+ * @param owner The player whose profile to check (defaults to "player1")
  */
-export function isMasterReady(): boolean {
-  return isWasmInitialized() && getOpponentProfile() !== null;
+export function isMasterReady(owner: ProfileOwner = "player1"): boolean {
+  return isWasmInitialized() && getOpponentProfile(owner) !== null;
 }
 
 // Helper function to calculate column score
