@@ -113,7 +113,8 @@ interface DieSlotProps {
 }
 
 export function DieSlot({ value, size = "md", isNew, isRemoving }: DieSlotProps) {
-  if (value === null) {
+  // Use loose equality to catch both null and undefined
+  if (value == null) {
     return (
       <div
         className={cn(

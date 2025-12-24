@@ -65,7 +65,8 @@ function placeDieInColumn(column: Column, dieValue: DieValue): Column {
  * (removes nulls and shifts remaining dice to the bottom)
  */
 function compactColumn(column: Column): Column {
-  const nonNullDice = column.filter((d) => d !== null) as DieValue[];
+  // Filter out both null and undefined for safety
+  const nonNullDice = column.filter((d) => d != null) as DieValue[];
   const result: Column = [null, null, null];
 
   // Fill from bottom (index 0) up
@@ -80,7 +81,7 @@ function compactColumn(column: Column): Column {
  * Remove matching dice from opponent's column and compact
  */
 function removeMatchingDice(column: Column, dieValue: DieValue): Column {
-  const afterRemoval = column.map((d) => (d === dieValue ? undefined : d)) as Column;
+  const afterRemoval = column.map((d) => (d === dieValue ? null : d)) as Column;
   return compactColumn(afterRemoval);
 }
 
