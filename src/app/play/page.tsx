@@ -19,6 +19,7 @@ import { GameBoard, KeyboardShortcuts } from "@/components/game";
 import { InstallPrompt } from "@/components/pwa";
 import { WinProbability } from "@/components/training";
 import { Button } from "@/components/ui/button";
+import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import {
   Dialog,
   DialogContent,
@@ -441,6 +442,8 @@ function PlayContent() {
               onCheckedChange={game.toggleTrainingMode}
             />
           </div>
+
+          <ThemeSwitcher />
 
           <Button
             variant="ghost"
