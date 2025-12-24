@@ -79,9 +79,13 @@ function SimulationContent() {
   );
   const controllerRef = useRef<SimulationController | null>(null);
 
-  // Check if Master AI is selected
+  // Check if Master AI is selected and determine which player
   const hasMasterAI =
     player1Strategy === "master" || player2Strategy === "master";
+  
+  // Determine which player is using Master AI (for stats display)
+  // If both are master, prefer showing player1's stats
+  const masterPlayer: "player1" | "player2" = player1Strategy === "master" ? "player1" : "player2";
 
   // Update Master AI stats periodically when Master is selected
   useEffect(() => {
@@ -90,9 +94,9 @@ function SimulationContent() {
       return;
     }
 
-    // Initial fetch with error handling
+    // Initial fetch with error handling - use the correct player's profile
     try {
-      setMasterStats(getMasterProfileStats());
+      setMasterStats(getMasterProfileStats(masterPlayer));
     } catch (error) {
       console.error("Failed to load Master AI stats:", error);
       setMasterStats(null);
@@ -102,19 +106,20 @@ function SimulationContent() {
     if (isRunning) {
       const interval = setInterval(() => {
         try {
-          setMasterStats(getMasterProfileStats());
+          setMasterStats(getMasterProfileStats(masterPlayer));
         } catch (error) {
           console.error("Failed to refresh Master AI stats:", error);
         }
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [hasMasterAI, isRunning, stats.completedGames]);
+  }, [hasMasterAI, isRunning, stats.completedGames, masterPlayer]);
 
   const handleResetMaster = useCallback(() => {
-    resetMasterProfile();
-    setMasterStats(getMasterProfileStats());
-  }, []);
+    // Reset the profile for the current master player
+    resetMasterProfile(masterPlayer);
+    setMasterStats(getMasterProfileStats(masterPlayer));
+  }, [masterPlayer]);
 
   const handleStart = useCallback(async () => {
     setIsRunning(true);
