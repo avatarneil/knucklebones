@@ -1,11 +1,7 @@
 "use client";
 
 import { Info, Target, Trash2, TrendingUp } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ColumnIndex, MoveAnalysis } from "@/engine/types";
 import { cn } from "@/lib/utils";
 
@@ -24,19 +20,17 @@ export function WinProbability({
     return (
       <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-card/50 border border-border/50">
         <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-        <span className="text-sm text-muted-foreground">
-          Analyzing moves...
-        </span>
+        <span className="text-sm text-muted-foreground">Analyzing moves...</span>
       </div>
     );
   }
 
   if (analysis.length === 0) {
-    return null;
+    return;
   }
 
   const bestMove = analysis.reduce((best, move) =>
-    move.winProbability > best.winProbability ? move : best,
+    move.winProbability > best.winProbability ? move : best
   );
 
   return (
@@ -61,14 +55,14 @@ export function WinProbability({
                     "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all cursor-pointer",
                     isBest
                       ? "bg-accent/20 border border-accent/50"
-                      : "bg-muted/30 hover:bg-muted/50",
+                      : "bg-muted/30 hover:bg-muted/50"
                   )}
                 >
                   {/* Column indicator */}
                   <div
                     className={cn(
                       "w-8 h-8 rounded-lg flex items-center justify-center font-bold",
-                      isBest ? "bg-accent text-accent-foreground" : "bg-muted",
+                      isBest ? "bg-accent text-accent-foreground" : "bg-muted"
                     )}
                   >
                     {move.column + 1}
@@ -86,7 +80,7 @@ export function WinProbability({
                             ? "text-green-400"
                             : move.winProbability > 0.3
                               ? "text-yellow-400"
-                              : "text-red-400",
+                              : "text-red-400"
                         )}
                       >
                         {probPercent}%
@@ -96,18 +90,14 @@ export function WinProbability({
                     {/* Score gain */}
                     <div className="flex items-center gap-1">
                       <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">
-                        +{move.immediateScoreGain}
-                      </span>
+                      <span className="text-muted-foreground">+{move.immediateScoreGain}</span>
                     </div>
 
                     {/* Dice removed */}
                     {move.opponentDiceRemoved > 0 && (
                       <div className="flex items-center gap-1">
                         <Trash2 className="w-4 h-4 text-destructive" />
-                        <span className="text-destructive">
-                          -{move.opponentDiceRemoved}
-                        </span>
+                        <span className="text-destructive">-{move.opponentDiceRemoved}</span>
                       </div>
                     )}
                   </div>

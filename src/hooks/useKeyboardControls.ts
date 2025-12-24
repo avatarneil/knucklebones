@@ -19,7 +19,7 @@ interface UseKeyboardControlsOptions {
  * - 1, 2, 3: Place die in columns 0, 1, 2 (when in placing phase)
  */
 export function useKeyboardControls({
-  gameState,
+  gameState: _gameState,
   canRoll,
   canPlace,
   legalColumns,
@@ -28,40 +28,37 @@ export function useKeyboardControls({
   enabled = true,
 }: UseKeyboardControlsOptions) {
   const optionsRef = useRef({
-    canRoll,
     canPlace,
+    canRoll,
     legalColumns,
-    onRoll,
     onPlaceDie,
+    onRoll,
   });
 
   // Keep refs up to date
   useEffect(() => {
     optionsRef.current = {
-      canRoll,
       canPlace,
+      canRoll,
       legalColumns,
-      onRoll,
       onPlaceDie,
+      onRoll,
     };
   }, [canRoll, canPlace, legalColumns, onRoll, onPlaceDie]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      if (!enabled) return;
-
-      // Don't trigger if user is typing in an input/textarea
-      const target = event.target as HTMLElement;
-      if (
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable
-      ) {
+      if (!enabled) {
         return;
       }
 
-      const { canRoll, canPlace, legalColumns, onRoll, onPlaceDie } =
-        optionsRef.current;
+      // Don't trigger if user is typing in an input/textarea
+      const target = event.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+        return;
+      }
+
+      const { canRoll, canPlace, legalColumns, onRoll, onPlaceDie } = optionsRef.current;
 
       // Roll dice: Space or Enter
       if ((event.key === " " || event.key === "Enter") && canRoll) {
@@ -86,11 +83,13 @@ export function useKeyboardControls({
         }
       }
     },
-    [enabled],
+    [enabled]
   );
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      return;
+    }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {

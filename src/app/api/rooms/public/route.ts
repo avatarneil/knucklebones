@@ -15,14 +15,14 @@ export async function GET() {
     const publicRooms = rooms.map((room) => getPublicRoomState(room));
 
     return NextResponse.json({
-      success: true,
       rooms: publicRooms,
+      success: true,
     });
   } catch (error) {
     console.error("Error getting public rooms:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to get public rooms" },
-      { status: 500 },
+      { error: "Failed to get public rooms", success: false },
+      { status: 500 }
     );
   }
 }

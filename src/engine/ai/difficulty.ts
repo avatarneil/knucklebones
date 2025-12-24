@@ -26,16 +26,6 @@ export interface DifficultyConfig {
 }
 
 export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
-  greedy: {
-    name: "Greedy",
-    description: "Always picks the move with highest immediate score gain",
-    depth: 0,
-    randomness: 0,
-    considerOpponent: false,
-    offenseWeight: 1.0,
-    defenseWeight: 0.0,
-    advancedEval: false,
-  },
   beginner: {
     name: "Beginner",
     description: "Makes mostly random moves with occasional good plays",
@@ -56,30 +46,30 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     defenseWeight: 0.4,
     advancedEval: false,
   },
-  medium: {
-    name: "Medium",
-    description: "Solid play with rare mistakes",
-    depth: 3,
-    randomness: 0.1,
-    considerOpponent: true,
-    offenseWeight: 0.5,
-    defenseWeight: 0.5,
-    advancedEval: true,
-  },
-  hard: {
-    name: "Hard",
-    description: "Strong evaluation and deep search",
-    depth: 4,
+  expert: {
+    name: "Expert",
+    description: "Maximum depth, perfect evaluation",
+    depth: 5,
     randomness: 0,
     considerOpponent: true,
     offenseWeight: 0.5,
     defenseWeight: 0.5,
     advancedEval: true,
   },
-  expert: {
-    name: "Expert",
-    description: "Maximum depth, perfect evaluation",
-    depth: 5,
+  greedy: {
+    name: "Greedy",
+    description: "Always picks the move with highest immediate score gain",
+    depth: 0,
+    randomness: 0,
+    considerOpponent: false,
+    offenseWeight: 1.0,
+    defenseWeight: 0.0,
+    advancedEval: false,
+  },
+  hard: {
+    name: "Hard",
+    description: "Strong evaluation and deep search",
+    depth: 4,
     randomness: 0,
     considerOpponent: true,
     offenseWeight: 0.5,
@@ -94,6 +84,16 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     considerOpponent: true,
     offenseWeight: 0.5, // Base weight, adapted at runtime
     defenseWeight: 0.5, // Base weight, adapted at runtime
+    advancedEval: true,
+  },
+  medium: {
+    name: "Medium",
+    description: "Solid play with rare mistakes",
+    depth: 3,
+    randomness: 0.1,
+    considerOpponent: true,
+    offenseWeight: 0.5,
+    defenseWeight: 0.5,
     advancedEval: true,
   },
 };

@@ -13,9 +13,9 @@ interface DieProps {
 }
 
 const sizeClasses = {
-  sm: "w-[clamp(1.75rem,5vmin,2.5rem)] h-[clamp(1.75rem,5vmin,2.5rem)]",
-  md: "w-[clamp(2.25rem,8vmin,4.5rem)] h-[clamp(2.25rem,8vmin,4.5rem)]",
   lg: "w-[clamp(3rem,10vmin,5.5rem)] h-[clamp(3rem,10vmin,5.5rem)]",
+  md: "w-[clamp(2.25rem,8vmin,4.5rem)] h-[clamp(2.25rem,8vmin,4.5rem)]",
+  sm: "w-[clamp(1.75rem,5vmin,2.5rem)] h-[clamp(1.75rem,5vmin,2.5rem)]",
 };
 
 const dieColors: Record<DieValue, string> = {
@@ -78,26 +78,24 @@ export function Die({
         isRolling && "animate-dice-roll",
         isNew && "animate-dice-bounce",
         isRemoving && "opacity-0 scale-0",
-        className,
+        className
       )}
     >
       {/* Dice dots */}
       <div className="absolute inset-1 grid grid-cols-3 grid-rows-3 gap-0.5">
         {[0, 1, 2].map((row) =>
           [0, 1, 2].map((col) => {
-            const hasDot = dotPositions[value].some(
-              ([r, c]) => r === row && c === col,
-            );
+            const hasDot = dotPositions[value].some(([r, c]) => r === row && c === col);
             return (
               <div
                 key={`${row}-${col}`}
                 className={cn(
                   "rounded-full transition-all",
-                  hasDot ? "bg-white shadow-inner" : "bg-transparent",
+                  hasDot ? "bg-white shadow-inner" : "bg-transparent"
                 )}
               />
             );
-          }),
+          })
         )}
       </div>
 
@@ -114,24 +112,17 @@ interface DieSlotProps {
   isRemoving?: boolean;
 }
 
-export function DieSlot({
-  value,
-  size = "md",
-  isNew,
-  isRemoving,
-}: DieSlotProps) {
+export function DieSlot({ value, size = "md", isNew, isRemoving }: DieSlotProps) {
   if (value === null) {
     return (
       <div
         className={cn(
           "rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted/30",
-          sizeClasses[size],
+          sizeClasses[size]
         )}
       />
     );
   }
 
-  return (
-    <Die value={value} size={size} isNew={isNew} isRemoving={isRemoving} />
-  );
+  return <Die value={value} size={size} isNew={isNew} isRemoving={isRemoving} />;
 }

@@ -10,8 +10,10 @@
     "build:wasm:check": "command -v wasm-pack >/dev/null 2>&1 && npm run build:wasm:release || echo 'WASM build skipped: wasm-pack not found'",
     "vercel-build": "./vercel-build.sh",
     "start": "next start",
-    "lint": "biome check",
-    "format": "biome format --write",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
     "generate-icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
@@ -32,12 +34,13 @@
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
+    "oxfmt": "0.18.0",
+    "oxlint": "1.33.0",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "typescript": "^5",

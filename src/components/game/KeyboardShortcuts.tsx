@@ -3,11 +3,7 @@
 import { ChevronDown, Keyboard } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export function KeyboardShortcuts() {
@@ -22,7 +18,7 @@ export function KeyboardShortcuts() {
             size="icon"
             className={cn(
               "h-10 w-10 rounded-full shadow-lg transition-all",
-              isExpanded && "bg-accent/10 border-accent",
+              isExpanded && "bg-accent/10 border-accent"
             )}
             onClick={() => setIsExpanded(!isExpanded)}
             aria-label="Keyboard shortcuts"
@@ -31,9 +27,7 @@ export function KeyboardShortcuts() {
           </Button>
         </TooltipTrigger>
         <TooltipContent side="left" className="max-w-xs">
-          <p className="text-xs">
-            Click to {isExpanded ? "hide" : "show"} keyboard shortcuts
-          </p>
+          <p className="text-xs">Click to {isExpanded ? "hide" : "show"} keyboard shortcuts</p>
         </TooltipContent>
       </Tooltip>
 
@@ -86,8 +80,7 @@ export function KeyboardShortcuts() {
 
             <div className="pt-2 border-t border-border">
               <p className="text-[10px] text-muted-foreground">
-                Shortcuts only work when it's your turn and you're not typing in
-                a text field.
+                Shortcuts only work when it's your turn and you're not typing in a text field.
               </p>
             </div>
           </div>

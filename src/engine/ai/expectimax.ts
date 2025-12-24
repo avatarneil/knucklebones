@@ -29,7 +29,7 @@ export interface ExpectimaxResult {
 const transpositionTable = new Map<string, { depth: number; value: number }>();
 
 /** Maximum nodes to explore before timing out (prevents freezing) */
-const MAX_NODES = 500000; // Reasonable limit for expert mode depth 6
+const MAX_NODES = 500_000; // Reasonable limit for expert mode depth 6
 
 /**
  * Clear the transposition table (call between games)
@@ -51,13 +51,11 @@ function _getStateKey(state: GameState, depth: number): string {
 /**
  * Order moves for better pruning (best moves first)
  */
-function orderMoves(
-  state: GameState,
-  columns: ColumnIndex[],
-  player: Player,
-): ColumnIndex[] {
+function orderMoves(state: GameState, columns: ColumnIndex[], player: Player): ColumnIndex[] {
   const currentDie = state.currentDie;
-  if (currentDie === null) return columns;
+  if (currentDie === null) {
+    return columns;
+  }
 
   const scored = columns.map((col) => ({
     col,
@@ -79,7 +77,7 @@ function maxNode(
   player: Player,
   playerConfig: DifficultyConfig,
   opponentConfig: DifficultyConfig,
-  nodesExplored: { count: number },
+  nodesExplored: { count: number }
 ): number {
   nodesExplored.count++;
 
@@ -95,14 +93,7 @@ function maxNode(
 
   // If we're in rolling phase, this is actually a chance node
   if (state.phase === "rolling") {
-    return chanceNode(
-      state,
-      depth,
-      player,
-      playerConfig,
-      opponentConfig,
-      nodesExplored,
-    );
+    return chanceNode(state, depth, player, playerConfig, opponentConfig, nodesExplored);
   }
 
   // Get legal moves
@@ -120,7 +111,9 @@ function maxNode(
 
   for (const column of orderedColumns) {
     const result = applyMove(state, column);
-    if (!result) continue;
+    if (!result) {
+      continue;
+    }
 
     // After placing, the next player needs to roll (chance node for them)
     let value: number;
@@ -135,7 +128,7 @@ function maxNode(
         player,
         playerConfig,
         opponentConfig,
-        nodesExplored,
+        nodesExplored
       );
     } else {
       // Opponent's turn - min node
@@ -145,7 +138,7 @@ function maxNode(
         player,
         playerConfig,
         opponentConfig,
-        nodesExplored,
+        nodesExplored
       );
     }
 
@@ -164,7 +157,7 @@ function minNode(
   player: Player,
   playerConfig: DifficultyConfig,
   opponentConfig: DifficultyConfig,
-  nodesExplored: { count: number },
+  nodesExplored: { count: number }
 ): number {
   nodesExplored.count++;
 
@@ -180,14 +173,7 @@ function minNode(
 
   // If we're in rolling phase, this is a chance node
   if (state.phase === "rolling") {
-    return chanceNode(
-      state,
-      depth,
-      player,
-      playerConfig,
-      opponentConfig,
-      nodesExplored,
-    );
+    return chanceNode(state, depth, player, playerConfig, opponentConfig, nodesExplored);
   }
 
   // Get legal moves for opponent
@@ -200,19 +186,15 @@ function minNode(
 
   // Use opponent's config to determine their move selection
   const opponent = state.currentPlayer;
-  let opponentMove: ColumnIndex | null = null;
+  let opponentMove: ColumnIndex | null;
 
   // If opponent uses greedy (depth 0), use greedy move selection
   if (opponentConfig.depth === 0) {
     opponentMove = getGreedyMove(state);
-  } else if (
-    opponentConfig.randomness > 0 &&
-    Math.random() < opponentConfig.randomness
-  ) {
+  } else if (opponentConfig.randomness > 0 && Math.random() < opponentConfig.randomness) {
     // Random move based on opponent's randomness
     const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(grid[i]));
-    opponentMove =
-      legalColumns[Math.floor(Math.random() * legalColumns.length)];
+    opponentMove = legalColumns[Math.floor(Math.random() * legalColumns.length)];
   } else {
     // Opponent uses expectimax - find their best move from their perspective
     // Limit the opponent's search depth to the minimum of their config depth and remaining depth
@@ -227,12 +209,7 @@ function minNode(
     // Call expectimax from opponent's perspective to find their best move
     // Swap configs: from opponent's perspective, they are the player and we are the opponent
     // Note: expectimax creates its own nodesExplored counter, but depth limit prevents infinite recursion
-    const opponentResult = expectimax(
-      state,
-      opponent,
-      limitedOpponentConfig,
-      playerConfig,
-    );
+    const opponentResult = expectimax(state, opponent, limitedOpponentConfig, playerConfig);
     opponentMove = opponentResult.bestMove;
 
     // Account for nodes explored in opponent's search (approximate, since we can't share the counter)
@@ -246,7 +223,9 @@ function minNode(
     let minValue = Number.POSITIVE_INFINITY;
     for (const column of legalColumns) {
       const result = applyMove(state, column);
-      if (!result) continue;
+      if (!result) {
+        continue;
+      }
 
       let value: number;
       if (result.newState.phase === "ended") {
@@ -258,7 +237,7 @@ function minNode(
           player,
           playerConfig,
           opponentConfig,
-          nodesExplored,
+          nodesExplored
         );
       } else {
         value = chanceNode(
@@ -267,7 +246,7 @@ function minNode(
           player,
           playerConfig,
           opponentConfig,
-          nodesExplored,
+          nodesExplored
         );
       }
       minValue = Math.min(minValue, value);
@@ -292,7 +271,7 @@ function minNode(
       player,
       playerConfig,
       opponentConfig,
-      nodesExplored,
+      nodesExplored
     );
   } else {
     // Still opponent's turn
@@ -302,7 +281,7 @@ function minNode(
       player,
       playerConfig,
       opponentConfig,
-      nodesExplored,
+      nodesExplored
     );
   }
 
@@ -318,7 +297,7 @@ function chanceNode(
   player: Player,
   playerConfig: DifficultyConfig,
   opponentConfig: DifficultyConfig,
-  nodesExplored: { count: number },
+  nodesExplored: { count: number }
 ): number {
   nodesExplored.count++;
 
@@ -330,23 +309,9 @@ function chanceNode(
   if (state.phase !== "rolling") {
     // Not a chance node
     if (state.currentPlayer === player) {
-      return maxNode(
-        state,
-        depth,
-        player,
-        playerConfig,
-        opponentConfig,
-        nodesExplored,
-      );
+      return maxNode(state, depth, player, playerConfig, opponentConfig, nodesExplored);
     } else {
-      return minNode(
-        state,
-        depth,
-        player,
-        playerConfig,
-        opponentConfig,
-        nodesExplored,
-      );
+      return minNode(state, depth, player, playerConfig, opponentConfig, nodesExplored);
     }
   }
 
@@ -358,23 +323,9 @@ function chanceNode(
 
     let value: number;
     if (rolledState.currentPlayer === player) {
-      value = maxNode(
-        rolledState,
-        depth,
-        player,
-        playerConfig,
-        opponentConfig,
-        nodesExplored,
-      );
+      value = maxNode(rolledState, depth, player, playerConfig, opponentConfig, nodesExplored);
     } else {
-      value = minNode(
-        rolledState,
-        depth,
-        player,
-        playerConfig,
-        opponentConfig,
-        nodesExplored,
-      );
+      value = minNode(rolledState, depth, player, playerConfig, opponentConfig, nodesExplored);
     }
 
     totalValue += value / 6; // Equal probability for each die value
@@ -390,13 +341,13 @@ export function expectimax(
   state: GameState,
   player: Player,
   playerConfig: DifficultyConfig,
-  opponentConfig: DifficultyConfig,
+  opponentConfig: DifficultyConfig
 ): ExpectimaxResult {
   const nodesExplored = { count: 0 };
 
   // Must be in placing phase with a die
   if (state.phase !== "placing" || state.currentDie === null) {
-    return { bestMove: null, value: 0, nodesExplored: nodesExplored.count };
+    return { bestMove: null, nodesExplored: nodesExplored.count, value: 0 };
   }
 
   // Get legal moves
@@ -404,27 +355,29 @@ export function expectimax(
   const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(grid[i]));
 
   if (legalColumns.length === 0) {
-    return { bestMove: null, value: 0, nodesExplored: nodesExplored.count };
+    return { bestMove: null, nodesExplored: nodesExplored.count, value: 0 };
   }
 
   if (legalColumns.length === 1) {
     // Only one legal move
     return {
       bestMove: legalColumns[0],
-      value: 0,
       nodesExplored: 1,
+      value: 0,
     };
   }
 
   // Order moves
   const orderedColumns = orderMoves(state, legalColumns, player);
 
-  let bestMove: ColumnIndex | null = null;
+  let bestMove: ColumnIndex | null;
   let bestValue = Number.NEGATIVE_INFINITY;
 
   for (const column of orderedColumns) {
     const result = applyMove(state, column);
-    if (!result) continue;
+    if (!result) {
+      continue;
+    }
 
     let value: number;
 
@@ -438,7 +391,7 @@ export function expectimax(
         player,
         playerConfig,
         opponentConfig,
-        nodesExplored,
+        nodesExplored
       );
     }
 
@@ -450,8 +403,8 @@ export function expectimax(
 
   return {
     bestMove,
-    value: bestValue,
     nodesExplored: nodesExplored.count,
+    value: bestValue,
   };
 }
 
@@ -462,18 +415,22 @@ export function expectimax(
 export function getBestMove(
   state: GameState,
   config: DifficultyConfig,
-  opponentConfig?: DifficultyConfig,
+  opponentConfig?: DifficultyConfig
 ): ColumnIndex | null {
   if (state.phase !== "placing" || state.currentDie === null) {
-    return null;
+    return;
   }
 
   const player = state.currentPlayer;
   const grid = state.grids[player];
   const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(grid[i]));
 
-  if (legalColumns.length === 0) return null;
-  if (legalColumns.length === 1) return legalColumns[0];
+  if (legalColumns.length === 0) {
+    return null;
+  }
+  if (legalColumns.length === 1) {
+    return legalColumns[0];
+  }
 
   // Greedy strategy: depth 0 means use greedy
   if (config.depth === 0) {

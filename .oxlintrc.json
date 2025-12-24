@@ -1,0 +1,28 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "nextjs", "import", "unicorn", "typescript"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "rules": {
+    "no-unused-vars": "warn",
+    "react/react-in-jsx-scope": "off",
+    "no-ternary": "off",
+    "no-magic-numbers": "off",
+    "import/no-named-export": "off",
+    "sort-imports": "off",
+    "no-plusplus": "off",
+    "no-nested-ternary": "off",
+    "unicorn/no-nested-ternary": "off",
+    "unicorn/consistent-function-scoping": "off",
+    "no-await-in-loop": "off",
+    "import/no-unassigned-import": "off"
+  },
+  "settings": {
+    "react": {
+      "linkComponents": [{ "name": "Link", "linkAttribute": "href" }]
+    }
+  }
+}

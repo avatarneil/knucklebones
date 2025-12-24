@@ -20,20 +20,14 @@ export async function POST(request: Request) {
     const playerToken = request.headers.get("x-player-token");
 
     if (!playerToken) {
-      return NextResponse.json(
-        { success: false, error: "Player token required" },
-        { status: 401 },
-      );
+      return NextResponse.json({ error: "Player token required", success: false }, { status: 401 });
     }
 
     // Get player session
     const session = await getPlayerSession(playerToken);
 
     if (!session) {
-      return NextResponse.json(
-        { success: false, error: "Not in a room" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Not in a room", success: false }, { status: 400 });
     }
 
     // Get the room
@@ -44,9 +38,9 @@ export async function POST(request: Request) {
 
       // Remove player from room
       if (role === "player1") {
-        room.player1 = null;
+        room.player1 = undefined;
       } else if (role === "player2") {
-        room.player2 = null;
+        room.player2 = undefined;
       }
 
       // Delete room if empty, otherwise save
@@ -63,9 +57,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error leaving room:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to leave room" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to leave room", success: false }, { status: 500 });
   }
 }

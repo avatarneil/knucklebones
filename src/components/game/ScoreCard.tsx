@@ -30,7 +30,7 @@ export function ScoreCard({
         className={cn(
           "flex flex-col items-center gap-[clamp(0.125rem,0.5vw,0.25rem)] transition-all",
           currentPlayer === "player1" && "scale-105",
-          winner === "player1" && "text-accent",
+          winner === "player1" && "text-accent"
         )}
       >
         <span className="text-[clamp(0.75rem,2vw,0.875rem)] text-muted-foreground">
@@ -53,13 +53,13 @@ export function ScoreCard({
               ? "bg-green-500/20 text-green-400"
               : diff < 0
                 ? "bg-red-500/20 text-red-400"
-                : "bg-muted text-muted-foreground",
+                : "bg-muted text-muted-foreground"
           )}
         >
           {diff > 0 ? (
             <>
-              <TrendingUp className="w-[clamp(0.75rem,2vw,1rem)] h-[clamp(0.75rem,2vw,1rem)]" />
-              +{diff}
+              <TrendingUp className="w-[clamp(0.75rem,2vw,1rem)] h-[clamp(0.75rem,2vw,1rem)]" />+
+              {diff}
             </>
           ) : diff < 0 ? (
             <>
@@ -68,14 +68,11 @@ export function ScoreCard({
             </>
           ) : (
             <>
-              <Minus className="w-[clamp(0.75rem,2vw,1rem)] h-[clamp(0.75rem,2vw,1rem)]" />
-              0
+              <Minus className="w-[clamp(0.75rem,2vw,1rem)] h-[clamp(0.75rem,2vw,1rem)]" />0
             </>
           )}
         </div>
-        <span className="text-[clamp(0.625rem,1.5vw,0.75rem)] text-muted-foreground">
-          vs
-        </span>
+        <span className="text-[clamp(0.625rem,1.5vw,0.75rem)] text-muted-foreground">vs</span>
       </div>
 
       {/* Player 2 */}
@@ -83,7 +80,7 @@ export function ScoreCard({
         className={cn(
           "flex flex-col items-center gap-[clamp(0.125rem,0.5vw,0.25rem)] transition-all",
           currentPlayer === "player2" && "scale-105",
-          winner === "player2" && "text-accent",
+          winner === "player2" && "text-accent"
         )}
       >
         <span className="text-[clamp(0.75rem,2vw,0.875rem)] text-muted-foreground">

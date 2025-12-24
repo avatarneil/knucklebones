@@ -7,37 +7,31 @@
 import { NextResponse } from "next/server";
 import { getRoom, setRoom } from "@/lib/kv";
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: roomId } = await params;
     const body = await request.json();
     const { action } = body; // "follow" or "unfollow"
-    const watcherToken =
-      body.watcherToken || `watcher_${Date.now()}_${Math.random()}`;
+    const watcherToken = body.watcherToken || `watcher_${Date.now()}_${Math.random()}`;
 
     // Get the room
     const room = await getRoom(roomId);
 
     if (!room) {
-      return NextResponse.json(
-        { success: false, error: "Room not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Room not found", success: false }, { status: 404 });
     }
 
     if (!room.isPublic) {
-      return NextResponse.json(
-        { success: false, error: "Room is not public" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Room is not public", success: false }, { status: 400 });
     }
 
     // Initialize arrays if needed
-    if (!room.watchers) room.watchers = [];
-    if (!room.followedBy) room.followedBy = [];
+    if (!room.watchers) {
+      room.watchers = [];
+    }
+    if (!room.followedBy) {
+      room.followedBy = [];
+    }
 
     if (action === "follow") {
       // Add to followers if not already following
@@ -57,15 +51,12 @@ export async function POST(
     await setRoom(room);
 
     return NextResponse.json({
+      followerCount: room.followedBy.length,
       success: true,
       watcherToken,
-      followerCount: room.followedBy.length,
     });
   } catch (error) {
     console.error("Error following room:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to follow room" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to follow room", success: false }, { status: 500 });
   }
 }

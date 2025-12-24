@@ -9,14 +9,7 @@
  * - 3 matching dice: value × 3 × 3 = value × 9
  */
 
-import type {
-  Column,
-  ColumnIndex,
-  ColumnScore,
-  DieValue,
-  Grid,
-  PlayerScore,
-} from "./types";
+import type { Column, ColumnIndex, ColumnScore, DieValue, Grid, PlayerScore } from "./types";
 import { ALL_COLUMNS } from "./types";
 
 /**
@@ -37,10 +30,7 @@ function countDiceInColumn(column: Column): Map<DieValue, number> {
 /**
  * Calculate the score for a single column
  */
-export function calculateColumnScore(
-  column: Column,
-  columnIndex: ColumnIndex,
-): ColumnScore {
+export function calculateColumnScore(column: Column, columnIndex: ColumnIndex): ColumnScore {
   const dice = column.filter((d): d is DieValue => d !== null);
   const counts = countDiceInColumn(column);
 
@@ -59,9 +49,9 @@ export function calculateColumnScore(
   const multiplier = baseValue > 0 ? total / baseValue : 1;
 
   return {
+    baseValue,
     column: columnIndex,
     dice,
-    baseValue,
     multiplier,
     total,
   };
@@ -89,13 +79,13 @@ export function calculateGridScore(grid: Grid): PlayerScore {
 export function calculateMoveScoreGain(
   grid: Grid,
   column: ColumnIndex,
-  dieValue: DieValue,
+  dieValue: DieValue
 ): number {
   const currentScore = calculateColumnScore(grid[column], column).total;
 
   // Create a copy of the column with the new die
   const newColumn = [...grid[column]] as Column;
-  const emptyIndex = newColumn.indexOf(null);
+  const emptyIndex = newColumn.indexOf(undefined);
 
   if (emptyIndex === -1) {
     return 0; // Column is full
@@ -110,10 +100,7 @@ export function calculateMoveScoreGain(
 /**
  * Calculate how many dice would be removed from opponent
  */
-export function calculateDiceRemoved(
-  opponentColumn: Column,
-  dieValue: DieValue,
-): number {
+export function calculateDiceRemoved(opponentColumn: Column, dieValue: DieValue): number {
   return opponentColumn.filter((d) => d === dieValue).length;
 }
 
@@ -123,14 +110,12 @@ export function calculateDiceRemoved(
 export function calculateOpponentScoreLoss(
   opponentGrid: Grid,
   column: ColumnIndex,
-  dieValue: DieValue,
+  dieValue: DieValue
 ): number {
   const currentScore = calculateColumnScore(opponentGrid[column], column).total;
 
   // Create a copy of the column without the matching dice
-  const newColumn = opponentGrid[column].map((d) =>
-    d === dieValue ? null : d,
-  ) as Column;
+  const newColumn = opponentGrid[column].map((d) => (d === dieValue ? undefined : d)) as Column;
   const newScore = calculateColumnScore(newColumn, column).total;
 
   return currentScore - newScore;

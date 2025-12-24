@@ -66,13 +66,13 @@ export function GameBoard({
           grid={state.grids.player2}
           playerName={player2Name}
           isCurrentPlayer={!isPlayer1Turn}
-          isOpponent={true}
+          isOpponent
           canPlaceDie={canPlace && !isPlayer1Turn}
           onColumnClick={onColumnClick}
           legalColumns={!isPlayer1Turn ? legalColumns : []}
           moveAnalysis={!isPlayer1Turn ? moveAnalysis : undefined}
           showProbabilities={showProbabilities && !isPlayer1Turn}
-          highlightedColumn={!isPlayer1Turn ? highlightedColumn : null}
+          highlightedColumn={!isPlayer1Turn ? highlightedColumn : undefined}
           isThinking={isThinking && isPlayer2Turn && !isPlayer2Human}
         />
       </div>
@@ -89,7 +89,7 @@ export function GameBoard({
           legalColumns={isPlayer1Turn ? legalColumns : []}
           moveAnalysis={isPlayer1Turn ? moveAnalysis : undefined}
           showProbabilities={showProbabilities && isPlayer1Turn}
-          highlightedColumn={isPlayer1Turn ? highlightedColumn : null}
+          highlightedColumn={isPlayer1Turn ? highlightedColumn : undefined}
           isThinking={isThinking && isPlayer1Turn && !isPlayer1Human}
         />
       </div>
@@ -103,11 +103,9 @@ export function GameBoard({
           player2Name={player2Name}
           currentPlayer={state.currentPlayer}
           winner={
-            state.winner === "player1" ||
-            state.winner === "player2" ||
-            state.winner === "draw"
+            state.winner === "player1" || state.winner === "player2" || state.winner === "draw"
               ? state.winner
-              : null
+              : undefined
           }
         />
 
@@ -144,13 +142,13 @@ export function GameBoard({
           grid={state.grids.player2}
           playerName={player2Name}
           isCurrentPlayer={!isPlayer1Turn}
-          isOpponent={true}
+          isOpponent
           canPlaceDie={canPlace && !isPlayer1Turn}
           onColumnClick={onColumnClick}
           legalColumns={!isPlayer1Turn ? legalColumns : []}
           moveAnalysis={!isPlayer1Turn ? moveAnalysis : undefined}
           showProbabilities={showProbabilities && !isPlayer1Turn}
-          highlightedColumn={!isPlayer1Turn ? highlightedColumn : null}
+          highlightedColumn={!isPlayer1Turn ? highlightedColumn : undefined}
           isThinking={isThinking && isPlayer2Turn && !isPlayer2Human}
         />
       </div>
@@ -167,7 +165,7 @@ export function GameBoard({
           legalColumns={isPlayer1Turn ? legalColumns : []}
           moveAnalysis={isPlayer1Turn ? moveAnalysis : undefined}
           showProbabilities={showProbabilities && isPlayer1Turn}
-          highlightedColumn={isPlayer1Turn ? highlightedColumn : null}
+          highlightedColumn={isPlayer1Turn ? highlightedColumn : undefined}
           isThinking={isThinking && isPlayer1Turn && !isPlayer1Human}
         />
       </div>

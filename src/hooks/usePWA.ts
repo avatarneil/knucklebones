@@ -19,11 +19,13 @@ declare global {
 
 const INSTALL_DISMISSED_KEY = "pwa-install-dismissed";
 const SHOW_DELAY_MS = 2000; // 2 second delay before showing
-const AUTO_DISMISS_MS = 30000; // Auto-dismiss after 30 seconds
+const AUTO_DISMISS_MS = 30_000; // Auto-dismiss after 30 seconds
 
 // Detect iOS devices
 function isIOS(): boolean {
-  if (typeof window === "undefined") return false;
+  if (typeof window === "undefined") {
+    return false;
+  }
   return (
     /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
@@ -32,33 +34,33 @@ function isIOS(): boolean {
 
 // Detect if running on a mobile device
 function isMobileDevice(): boolean {
-  if (typeof window === "undefined") return false;
+  if (typeof window === "undefined") {
+    return false;
+  }
   // Check for touch capability and screen size
-  const hasTouchScreen =
-    navigator.maxTouchPoints > 0 || "ontouchstart" in window;
+  const hasTouchScreen = navigator.maxTouchPoints > 0 || "ontouchstart" in window;
   const isSmallScreen = window.innerWidth <= 768;
   const userAgent = navigator.userAgent.toLowerCase();
-  const isMobileUA =
-    /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
-      userAgent,
-    );
+  const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+    userAgent
+  );
 
   return isMobileUA || (hasTouchScreen && isSmallScreen);
 }
 
 // Detect if running in standalone mode (already installed)
 function isStandalone(): boolean {
-  if (typeof window === "undefined") return false;
+  if (typeof window === "undefined") {
+    return false;
+  }
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
-    (window.navigator as unknown as { standalone?: boolean }).standalone ===
-      true
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true
   );
 }
 
 export function useInstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(undefined);
   const [canInstall, setCanInstall] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
@@ -123,7 +125,7 @@ export function useInstallPrompt() {
       setIsInstalled(true);
       setCanInstall(false);
       setShowPrompt(false);
-      setDeferredPrompt(null);
+      setDeferredPrompt(undefined);
       clearTimeout(showTimeout);
       clearTimeout(autoDismissTimeout);
     };
@@ -135,10 +137,7 @@ export function useInstallPrompt() {
 
     return () => {
       if (!ios) {
-        window.removeEventListener(
-          "beforeinstallprompt",
-          handleBeforeInstallPrompt,
-        );
+        window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       }
       window.removeEventListener("appinstalled", handleAppInstalled);
       clearTimeout(showTimeout);
@@ -153,7 +152,9 @@ export function useInstallPrompt() {
       return false;
     }
 
-    if (!deferredPrompt) return false;
+    if (!deferredPrompt) {
+      return false;
+    }
 
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
@@ -162,7 +163,7 @@ export function useInstallPrompt() {
       setIsInstalled(true);
     }
 
-    setDeferredPrompt(null);
+    setDeferredPrompt(undefined);
     setCanInstall(false);
     setShowPrompt(false);
 
@@ -176,11 +177,11 @@ export function useInstallPrompt() {
 
   return {
     canInstall,
+    dismissPrompt,
+    install,
+    isIOSDevice,
     isInstalled,
     showPrompt,
-    install,
-    dismissPrompt,
-    isIOSDevice,
   };
 }
 

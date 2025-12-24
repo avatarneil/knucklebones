@@ -1,13 +1,7 @@
 import { Dices, WifiOff } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function OfflinePage() {
   return (
@@ -27,14 +21,12 @@ export default function OfflinePage() {
             <WifiOff className="w-8 h-8 text-muted-foreground" />
           </div>
           <CardTitle>You're Offline</CardTitle>
-          <CardDescription>
-            It looks like you've lost your internet connection.
-          </CardDescription>
+          <CardDescription>It looks like you've lost your internet connection.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-center">
           <p className="text-sm text-muted-foreground">
-            Don't worry! Once you're back online, you can continue playing. The
-            VS AI mode works offline after your first visit.
+            Don't worry! Once you're back online, you can continue playing. The VS AI mode works
+            offline after your first visit.
           </p>
 
           <Link href="/" className="block">

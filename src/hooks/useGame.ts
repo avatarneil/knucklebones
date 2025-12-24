@@ -9,12 +9,7 @@ import {
   quickAnalysis,
   rollDie,
 } from "@/engine";
-import type {
-  ColumnIndex,
-  DifficultyLevel,
-  GameState,
-  MoveAnalysis,
-} from "@/engine/types";
+import type { ColumnIndex, DifficultyLevel, GameState, MoveAnalysis } from "@/engine/types";
 
 interface UseGameOptions {
   mode: "ai" | "pvp" | "training" | "ai-vs-ai";
@@ -45,29 +40,22 @@ interface UseGameReturn {
 }
 
 export function useGame(options: UseGameOptions): UseGameReturn {
-  const [state, setState] = useState<GameState>(
-    () => options.initialState ?? createInitialState(),
-  );
+  const [state, setState] = useState<GameState>(() => options.initialState ?? createInitialState());
 
   // Reset state when initialState changes (for resume functionality)
   const prevInitialStateRef = useRef(options.initialState);
   useEffect(() => {
-    if (
-      options.initialState &&
-      options.initialState !== prevInitialStateRef.current
-    ) {
+    if (options.initialState && options.initialState !== prevInitialStateRef.current) {
       setState(options.initialState);
       prevInitialStateRef.current = options.initialState;
     }
   }, [options.initialState]);
   const [isRolling, setIsRolling] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
-  const [moveAnalysis, setMoveAnalysis] = useState<MoveAnalysis[] | null>(null);
-  const [isTrainingMode, setIsTrainingMode] = useState(
-    options.trainingMode ?? false,
-  );
+  const [moveAnalysis, setMoveAnalysis] = useState<MoveAnalysis[] | null>(undefined);
+  const [isTrainingMode, setIsTrainingMode] = useState(options.trainingMode ?? false);
   const [difficulty, setDifficultyState] = useState<DifficultyLevel>(
-    options.difficulty ?? "medium",
+    options.difficulty ?? "medium"
   );
 
   const aiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -106,21 +94,18 @@ export function useGame(options: UseGameOptions): UseGameReturn {
           setMoveAnalysis(analysis.moves);
         }, 0);
       } else {
-        setMoveAnalysis(null);
+        setMoveAnalysis(undefined);
       }
     },
-    [options.mode],
+    [options.mode]
   );
 
   const handleAITurn = useCallback(
     (gameState: GameState) => {
       const isAIMode = options.mode === "ai" || options.mode === "ai-vs-ai";
-      const isPlayer2AI =
-        options.mode === "ai" && gameState.currentPlayer === "player2";
-      const isPlayer1AI =
-        options.mode === "ai-vs-ai" && gameState.currentPlayer === "player1";
-      const isPlayer2AIVsAI =
-        options.mode === "ai-vs-ai" && gameState.currentPlayer === "player2";
+      const isPlayer2AI = options.mode === "ai" && gameState.currentPlayer === "player2";
+      const isPlayer1AI = options.mode === "ai-vs-ai" && gameState.currentPlayer === "player1";
+      const isPlayer2AIVsAI = options.mode === "ai-vs-ai" && gameState.currentPlayer === "player2";
 
       if (!isAIMode || gameState.phase === "ended") {
         return;
@@ -146,8 +131,7 @@ export function useGame(options: UseGameOptions): UseGameReturn {
       // Determine which difficulty to use
       const currentDifficulty =
         (isPlayer1AI && (options.player1Difficulty ?? difficulty)) ||
-        ((isPlayer2AI || isPlayer2AIVsAI) &&
-          (options.player2Difficulty ?? difficulty)) ||
+        ((isPlayer2AI || isPlayer2AIVsAI) && (options.player2Difficulty ?? difficulty)) ||
         difficulty;
 
       // Determine opponent difficulty (for AI vs AI mode)
@@ -171,11 +155,7 @@ export function useGame(options: UseGameOptions): UseGameReturn {
           // Place after short delay
           setTimeout(() => {
             setIsRolling(false);
-            const move = getAIMove(
-              currentState,
-              currentDifficulty,
-              opponentDifficulty,
-            );
+            const move = getAIMove(currentState, currentDifficulty, opponentDifficulty);
             if (move !== null) {
               const result = applyMove(currentState, move);
               if (result) {
@@ -201,11 +181,7 @@ export function useGame(options: UseGameOptions): UseGameReturn {
             }
           }, 400);
         } else if (currentState.phase === "placing") {
-          const move = getAIMove(
-            currentState,
-            currentDifficulty,
-            opponentDifficulty,
-          );
+          const move = getAIMove(currentState, currentDifficulty, opponentDifficulty);
           if (move !== null) {
             const result = applyMove(currentState, move);
             if (result) {
@@ -241,7 +217,7 @@ export function useGame(options: UseGameOptions): UseGameReturn {
       difficulty,
       isTrainingMode,
       runMoveAnalysis,
-    ],
+    ]
   );
 
   // Trigger AI moves when it's an AI player's turn
@@ -251,12 +227,9 @@ export function useGame(options: UseGameOptions): UseGameReturn {
       return;
     }
 
-    const isPlayer2AI =
-      options.mode === "ai" && state.currentPlayer === "player2";
-    const isPlayer1AI =
-      options.mode === "ai-vs-ai" && state.currentPlayer === "player1";
-    const isPlayer2AIVsAI =
-      options.mode === "ai-vs-ai" && state.currentPlayer === "player2";
+    const isPlayer2AI = options.mode === "ai" && state.currentPlayer === "player2";
+    const isPlayer1AI = options.mode === "ai-vs-ai" && state.currentPlayer === "player1";
+    const isPlayer2AIVsAI = options.mode === "ai-vs-ai" && state.currentPlayer === "player2";
 
     if (isPlayer2AI || isPlayer1AI || isPlayer2AIVsAI) {
       // Only trigger if we're not already rolling (to avoid double triggers)
@@ -267,10 +240,16 @@ export function useGame(options: UseGameOptions): UseGameReturn {
   }, [state, options.mode, handleAITurn, isRolling]);
 
   const roll = useCallback(() => {
-    if (state.phase !== "rolling") return;
+    if (state.phase !== "rolling") {
+      return;
+    }
     // Don't allow manual roll if current player is AI
-    if (options.mode === "ai" && state.currentPlayer === "player2") return;
-    if (options.mode === "ai-vs-ai") return; // Both players are AI
+    if (options.mode === "ai" && state.currentPlayer === "player2") {
+      return;
+    }
+    if (options.mode === "ai-vs-ai") {
+      return;
+    } // Both players are AI
 
     setIsRolling(true);
 
@@ -288,16 +267,22 @@ export function useGame(options: UseGameOptions): UseGameReturn {
 
   const placeDie = useCallback(
     (column: ColumnIndex) => {
-      if (state.phase !== "placing") return;
+      if (state.phase !== "placing") {
+        return;
+      }
 
       const legalMoves = getLegalMoves(state);
-      if (!legalMoves || !legalMoves.columns.includes(column)) return;
+      if (!legalMoves || !legalMoves.columns.includes(column)) {
+        return;
+      }
 
       const result = applyMove(state, column);
-      if (!result) return;
+      if (!result) {
+        return;
+      }
 
       setState(result.newState);
-      setMoveAnalysis(null);
+      setMoveAnalysis(undefined);
 
       if (result.newState.phase === "ended" && result.newState.winner) {
         onGameEndRef.current?.(result.newState.winner);
@@ -306,7 +291,7 @@ export function useGame(options: UseGameOptions): UseGameReturn {
         handleAITurn(result.newState);
       }
     },
-    [state, options, handleAITurn],
+    [state, handleAITurn]
   );
 
   const resetGame = useCallback(() => {
@@ -317,7 +302,7 @@ export function useGame(options: UseGameOptions): UseGameReturn {
     setIsThinking(false);
     const newState = createInitialState();
     setState(newState);
-    setMoveAnalysis(null);
+    setMoveAnalysis(undefined);
     setIsRolling(false);
   }, []);
 
@@ -328,30 +313,26 @@ export function useGame(options: UseGameOptions): UseGameReturn {
   const toggleTrainingMode = useCallback(() => {
     setIsTrainingMode((prev) => {
       const newValue = !prev;
-      if (
-        newValue &&
-        state.phase === "placing" &&
-        state.currentPlayer === "player1"
-      ) {
+      if (newValue && state.phase === "placing" && state.currentPlayer === "player1") {
         runMoveAnalysis(state);
       } else {
-        setMoveAnalysis(null);
+        setMoveAnalysis(undefined);
       }
       return newValue;
     });
   }, [state, runMoveAnalysis]);
 
   return {
-    state,
+    difficulty,
     isRolling,
     isThinking,
+    isTrainingMode,
     moveAnalysis,
-    roll,
     placeDie,
     resetGame,
+    roll,
     setDifficulty,
+    state,
     toggleTrainingMode,
-    isTrainingMode,
-    difficulty,
   };
 }

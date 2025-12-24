@@ -8,11 +8,7 @@
 import { isColumnFull } from "../scorer";
 import type { ColumnIndex, DifficultyLevel, GameState } from "../types";
 import { ALL_COLUMNS } from "../types";
-import {
-  DIFFICULTY_CONFIGS,
-  getAllDifficultyLevels,
-  getDifficultyConfig,
-} from "./difficulty";
+import { DIFFICULTY_CONFIGS, getAllDifficultyLevels, getDifficultyConfig } from "./difficulty";
 import { evaluate, evaluateMoveQuick, getGreedyMove } from "./evaluation";
 import { clearTranspositionTable, getBestMove } from "./expectimax";
 import {
@@ -20,17 +16,11 @@ import {
   getMasterMove,
   getMasterProfileStats,
   isMasterReady,
-  type MasterProfileStats,
-  type ProfileOwner,
   recordOpponentMoveForLearning,
   resetMasterProfile,
 } from "./master";
-import {
-  clearWasmCache,
-  getBestMoveWasm,
-  initWasm,
-  isWasmInitialized,
-} from "./wasm-bindings";
+import type { MasterProfileStats, ProfileOwner } from "./master";
+import { clearWasmCache, getBestMoveWasm, initWasm, isWasmInitialized } from "./wasm-bindings";
 
 export { DIFFICULTY_CONFIGS, getDifficultyConfig, getAllDifficultyLevels };
 export { clearTranspositionTable };
@@ -90,10 +80,7 @@ export class AIPlayer {
   /**
    * Choose a move for the current game state
    */
-  chooseMove(
-    state: GameState,
-    opponentDifficulty?: DifficultyLevel,
-  ): ColumnIndex | null {
+  chooseMove(state: GameState, opponentDifficulty?: DifficultyLevel): ColumnIndex | null {
     try {
       // Handle Master AI specially - uses adaptive learning
       if (this.difficulty === "master") {
@@ -125,7 +112,7 @@ export class AIPlayer {
           opponentConfig?.randomness,
           opponentConfig?.offenseWeight,
           opponentConfig?.defenseWeight,
-          opponentConfig?.advancedEval,
+          opponentConfig?.advancedEval
         );
         if (wasmMove !== null) {
           return wasmMove as ColumnIndex;
@@ -136,23 +123,14 @@ export class AIPlayer {
       const move = getBestMove(state, config, opponentConfig);
 
       // Fallback: if expectimax fails, use a simple heuristic
-      if (
-        move === null &&
-        state.phase === "placing" &&
-        state.currentDie !== null
-      ) {
+      if (move === null && state.phase === "placing" && state.currentDie !== null) {
         const grid = state.grids[state.currentPlayer];
         const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(grid[i]));
         if (legalColumns.length > 0) {
           // Use quick evaluation to pick best column
           const scored = legalColumns.map((col) => ({
             col,
-            score: evaluateMoveQuick(
-              state,
-              col,
-              state.currentDie!,
-              state.currentPlayer,
-            ),
+            score: evaluateMoveQuick(state, col, state.currentDie!, state.currentPlayer),
           }));
           scored.sort((a, b) => b.score - a.score);
           return scored[0]?.col ?? legalColumns[0];
@@ -166,9 +144,9 @@ export class AIPlayer {
       if (state.phase === "placing" && state.currentDie !== null) {
         const grid = state.grids[state.currentPlayer];
         const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(grid[i]));
-        return legalColumns[0] ?? null;
+        return legalColumns[0] ?? undefined;
       }
-      return null;
+      return;
     }
   }
 
@@ -184,13 +162,10 @@ export class AIPlayer {
    * Get a quick evaluation of a specific move
    */
   evaluateMove(state: GameState, column: ColumnIndex): number {
-    if (state.currentDie === null) return 0;
-    return evaluateMoveQuick(
-      state,
-      column,
-      state.currentDie,
-      state.currentPlayer,
-    );
+    if (state.currentDie === null) {
+      return 0;
+    }
+    return evaluateMoveQuick(state, column, state.currentDie, state.currentPlayer);
   }
 
   /**
@@ -207,9 +182,7 @@ export class AIPlayer {
 /**
  * Create an AI player with the specified difficulty
  */
-export function createAIPlayer(
-  difficulty: DifficultyLevel = "medium",
-): AIPlayer {
+export function createAIPlayer(difficulty: DifficultyLevel = "medium"): AIPlayer {
   return new AIPlayer(difficulty);
 }
 
@@ -219,7 +192,7 @@ export function createAIPlayer(
 export function getAIMove(
   state: GameState,
   difficulty: DifficultyLevel = "medium",
-  opponentDifficulty?: DifficultyLevel,
+  opponentDifficulty?: DifficultyLevel
 ): ColumnIndex | null {
   try {
     // Handle Master AI specially - uses adaptive learning
@@ -232,9 +205,7 @@ export function getAIMove(
     }
 
     const config = getDifficultyConfig(difficulty);
-    const opponentConfig = opponentDifficulty
-      ? getDifficultyConfig(opponentDifficulty)
-      : undefined;
+    const opponentConfig = opponentDifficulty ? getDifficultyConfig(opponentDifficulty) : undefined;
 
     // Try WASM first if available (synchronous, non-blocking)
     if (state.phase === "placing" && state.currentDie !== null) {
@@ -252,7 +223,7 @@ export function getAIMove(
         opponentConfig?.randomness,
         opponentConfig?.offenseWeight,
         opponentConfig?.defenseWeight,
-        opponentConfig?.advancedEval,
+        opponentConfig?.advancedEval
       );
       if (wasmMove !== null) {
         return wasmMove as ColumnIndex;
@@ -263,23 +234,14 @@ export function getAIMove(
     const move = getBestMove(state, config, opponentConfig);
 
     // Fallback: if expectimax fails, use a simple heuristic
-    if (
-      move === null &&
-      state.phase === "placing" &&
-      state.currentDie !== null
-    ) {
+    if (move === null && state.phase === "placing" && state.currentDie !== null) {
       const grid = state.grids[state.currentPlayer];
       const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(grid[i]));
       if (legalColumns.length > 0) {
         // Use quick evaluation to pick best column
         const scored = legalColumns.map((col) => ({
           col,
-          score: evaluateMoveQuick(
-            state,
-            col,
-            state.currentDie!,
-            state.currentPlayer,
-          ),
+          score: evaluateMoveQuick(state, col, state.currentDie!, state.currentPlayer),
         }));
         scored.sort((a, b) => b.score - a.score);
         return scored[0]?.col ?? legalColumns[0];
@@ -293,8 +255,8 @@ export function getAIMove(
     if (state.phase === "placing" && state.currentDie !== null) {
       const grid = state.grids[state.currentPlayer];
       const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(grid[i]));
-      return legalColumns[0] ?? null;
+      return legalColumns[0] ?? undefined;
     }
-    return null;
+    return;
   }
 }

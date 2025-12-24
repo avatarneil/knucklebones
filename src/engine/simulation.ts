@@ -9,26 +9,20 @@ import { endMasterGame, getAIMove, recordOpponentMoveForLearning } from "./ai";
 import { applyMove, rollDie } from "./moves";
 import { calculateGridScore } from "./scorer";
 import { createInitialState } from "./state";
-import type {
-  ColumnIndex,
-  DieValue,
-  DifficultyLevel,
-  GameState,
-  Player,
-} from "./types";
+import type { ColumnIndex, DieValue, DifficultyLevel, GameState, Player } from "./types";
 
 export interface SimulationResult {
   id: number;
   winner: Player | "draw";
   finalScore: { player1: number; player2: number };
   turnCount: number;
-  moves: Array<{
+  moves: {
     turn: number;
     player: Player;
     dieValue: number;
     column: number;
     state: GameState;
-  }>;
+  }[];
   finalState: GameState; // Final state after all moves
   player1Strategy: DifficultyLevel;
   player2Strategy: DifficultyLevel;
@@ -53,10 +47,7 @@ export interface SimulationConfig {
   player1Strategy: DifficultyLevel;
   player2Strategy: DifficultyLevel;
   numGames: number;
-  onProgress?: (
-    stats: SimulationStats,
-    latestResult?: SimulationResult,
-  ) => void;
+  onProgress?: (stats: SimulationStats, latestResult?: SimulationResult) => void;
   onGameComplete?: (result: SimulationResult) => void;
   controller?: SimulationController;
 }
@@ -67,7 +58,7 @@ export interface SimulationConfig {
  */
 function detectMasterAI(
   player1Strategy: DifficultyLevel,
-  player2Strategy: DifficultyLevel,
+  player2Strategy: DifficultyLevel
 ): {
   isMasterPlayer1: boolean;
   isMasterPlayer2: boolean;
@@ -76,9 +67,9 @@ function detectMasterAI(
   const isMasterPlayer1 = player1Strategy === "master";
   const isMasterPlayer2 = player2Strategy === "master";
   return {
+    hasMasterPlayer: isMasterPlayer1 || isMasterPlayer2,
     isMasterPlayer1,
     isMasterPlayer2,
-    hasMasterPlayer: isMasterPlayer1 || isMasterPlayer2,
   };
 }
 
@@ -89,7 +80,7 @@ function detectMasterAI(
 async function simulateSingleGame(
   id: number,
   player1Strategy: DifficultyLevel,
-  player2Strategy: DifficultyLevel,
+  player2Strategy: DifficultyLevel
 ): Promise<SimulationResult> {
   const startTime = performance.now();
   let state = createInitialState();
@@ -100,7 +91,7 @@ async function simulateSingleGame(
   // Check if Master AI is involved for learning
   const { isMasterPlayer1, isMasterPlayer2, hasMasterPlayer } = detectMasterAI(
     player1Strategy,
-    player2Strategy,
+    player2Strategy
   );
 
   // Run the game until completion
@@ -111,10 +102,8 @@ async function simulateSingleGame(
     }
 
     // Get AI move
-    const currentStrategy =
-      state.currentPlayer === "player1" ? player1Strategy : player2Strategy;
-    const opponentStrategy =
-      state.currentPlayer === "player1" ? player2Strategy : player1Strategy;
+    const currentStrategy = state.currentPlayer === "player1" ? player1Strategy : player2Strategy;
+    const opponentStrategy = state.currentPlayer === "player1" ? player2Strategy : player1Strategy;
     const move = getAIMove(state, currentStrategy, opponentStrategy);
 
     if (move === null) {
@@ -132,7 +121,7 @@ async function simulateSingleGame(
           move as ColumnIndex,
           state.currentDie as DieValue,
           "player2", // The opponent making the move
-          "player1", // The Master AI learning from it
+          "player1" // The Master AI learning from it
         );
       }
 
@@ -143,18 +132,18 @@ async function simulateSingleGame(
           move as ColumnIndex,
           state.currentDie as DieValue,
           "player1", // The opponent making the move
-          "player2", // The Master AI learning from it
+          "player2" // The Master AI learning from it
         );
       }
     }
 
     // Record move before applying
     moves.push({
-      turn: state.turnNumber,
-      player: state.currentPlayer,
-      dieValue: state.currentDie!,
       column: move,
-      state: JSON.parse(JSON.stringify(state)) as GameState, // Deep clone
+      dieValue: state.currentDie!,
+      player: state.currentPlayer,
+      state: JSON.parse(JSON.stringify(state)) as GameState,
+      turn: state.turnNumber, // Deep clone
     });
 
     // Apply move
@@ -170,9 +159,7 @@ async function simulateSingleGame(
     // Yield control to UI thread every few moves to prevent blocking
     // For hard/expert/master difficulties, yield more frequently due to heavy computation
     const isHardDifficulty =
-      currentStrategy === "hard" ||
-      currentStrategy === "expert" ||
-      currentStrategy === "master";
+      currentStrategy === "hard" || currentStrategy === "expert" || currentStrategy === "master";
     const yieldInterval = isHardDifficulty ? 1 : 3;
 
     if (moveCount % yieldInterval === 0) {
@@ -210,10 +197,7 @@ async function simulateSingleGame(
 /**
  * Calculate statistics from results
  */
-function calculateStats(
-  results: SimulationResult[],
-  totalGames: number,
-): SimulationStats {
+function calculateStats(results: SimulationResult[], totalGames: number): SimulationStats {
   const completedGames = results.length;
   const player1Wins = results.filter((r) => r.winner === "player1").length;
   const player2Wins = results.filter((r) => r.winner === "player2").length;
@@ -223,34 +207,28 @@ function calculateStats(
   const player2WinRate = completedGames > 0 ? player2Wins / completedGames : 0;
 
   const averageTurnCount =
-    completedGames > 0
-      ? results.reduce((sum, r) => sum + r.turnCount, 0) / completedGames
-      : 0;
+    completedGames > 0 ? results.reduce((sum, r) => sum + r.turnCount, 0) / completedGames : 0;
 
   const averageScoreDiff =
     completedGames > 0
-      ? results.reduce(
-          (sum, r) => sum + (r.finalScore.player1 - r.finalScore.player2),
-          0,
-        ) / completedGames
+      ? results.reduce((sum, r) => sum + (r.finalScore.player1 - r.finalScore.player2), 0) /
+        completedGames
       : 0;
 
   const averageRuntimePerGame =
-    completedGames > 0
-      ? results.reduce((sum, r) => sum + r.runtime, 0) / completedGames
-      : 0;
+    completedGames > 0 ? results.reduce((sum, r) => sum + r.runtime, 0) / completedGames : 0;
 
   return {
-    totalGames,
+    averageRuntimePerGame,
+    averageScoreDiff,
+    averageTurnCount,
     completedGames,
-    player1Wins,
-    player2Wins,
     draws,
     player1WinRate,
+    player1Wins,
     player2WinRate,
-    averageTurnCount,
-    averageScoreDiff,
-    averageRuntimePerGame,
+    player2Wins,
+    totalGames,
   };
 }
 
@@ -259,7 +237,7 @@ function calculateStats(
  */
 function getConcurrency(
   player1Strategy: DifficultyLevel,
-  player2Strategy: DifficultyLevel,
+  player2Strategy: DifficultyLevel
 ): number {
   const isExpert = (strategy: DifficultyLevel) => strategy === "expert";
   const isHard = (strategy: DifficultyLevel) => strategy === "hard";
@@ -288,16 +266,8 @@ function getConcurrency(
 /**
  * Run mass simulation with configurable concurrency
  */
-export async function runSimulation(
-  config: SimulationConfig,
-): Promise<SimulationResult[]> {
-  const {
-    numGames,
-    player1Strategy,
-    player2Strategy,
-    onProgress,
-    onGameComplete,
-  } = config;
+export async function runSimulation(config: SimulationConfig): Promise<SimulationResult[]> {
+  const { numGames, player1Strategy, player2Strategy, onProgress, onGameComplete } = config;
   const results: SimulationResult[] = [];
   const concurrency = getConcurrency(player1Strategy, player2Strategy);
   let nextId = 0;
@@ -314,14 +284,18 @@ export async function runSimulation(
 
   // Process games in batches
   for (let i = 0; i < numGames; i += concurrency) {
-    if (checkCancelled()) break;
+    if (checkCancelled()) {
+      break;
+    }
 
     const batchSize = Math.min(concurrency, numGames - i);
     const batch: Promise<SimulationResult>[] = [];
 
     // Start batch of games
     for (let j = 0; j < batchSize; j++) {
-      if (checkCancelled()) break;
+      if (checkCancelled()) {
+        break;
+      }
       const gameId = nextId++;
       batch.push(simulateSingleGame(gameId, player1Strategy, player2Strategy));
     }
@@ -331,7 +305,9 @@ export async function runSimulation(
     const batchResults = await Promise.allSettled(batch);
 
     for (const result of batchResults) {
-      if (checkCancelled()) break;
+      if (checkCancelled()) {
+        break;
+      }
 
       if (result.status === "fulfilled") {
         results.push(result.value);

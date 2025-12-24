@@ -20,8 +20,8 @@ export async function POST(request: Request) {
 
     if (!roomId || !state) {
       return NextResponse.json(
-        { success: false, error: "Room ID and state required" },
-        { status: 400 },
+        { error: "Room ID and state required", success: false },
+        { status: 400 }
       );
     }
 
@@ -29,17 +29,11 @@ export async function POST(request: Request) {
     const room = await getRoom(roomId);
 
     if (!room) {
-      return NextResponse.json(
-        { success: false, error: "Room not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Room not found", success: false }, { status: 404 });
     }
 
     if (room.gameType !== "ai") {
-      return NextResponse.json(
-        { success: false, error: "Not an AI room" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Not an AI room", success: false }, { status: 400 });
     }
 
     // Update state
@@ -55,8 +49,8 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error updating AI room:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to update AI room" },
-      { status: 500 },
+      { error: "Failed to update AI room", success: false },
+      { status: 500 }
     );
   }
 }

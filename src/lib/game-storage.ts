@@ -73,26 +73,32 @@ class LocalStorageAdapter implements StorageAdapter {
   }
 
   get<T>(key: string): T | null {
-    if (typeof window === "undefined") return null;
+    if (typeof window === "undefined") {
+      return null;
+    }
     try {
       const item = localStorage.getItem(this.getFullKey(key));
-      return item ? (JSON.parse(item) as T) : null;
+      return item ? (JSON.parse(item) as T) : undefined;
     } catch {
-      return null;
+      return;
     }
   }
 
   set<T>(key: string, value: T): void {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") {
+      return;
+    }
     try {
       localStorage.setItem(this.getFullKey(key), JSON.stringify(value));
-    } catch (e) {
-      console.error("Failed to save to localStorage:", e);
+    } catch (error) {
+      console.error("Failed to save to localStorage:", error);
     }
   }
 
   remove(key: string): void {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") {
+      return;
+    }
     try {
       localStorage.removeItem(this.getFullKey(key));
     } catch {
@@ -185,11 +191,11 @@ class GameStorageServiceImpl {
     const draws = aiGames.filter((h) => h.winner === "draw").length;
 
     return {
-      totalGames: aiGames.length,
-      wins,
-      losses,
       draws,
+      losses,
+      totalGames: aiGames.length,
       winRate: aiGames.length > 0 ? wins / aiGames.length : 0,
+      wins,
     };
   }
 }
@@ -207,6 +213,4 @@ export function generateSessionId(): string {
 // Singleton Instance
 // ============================================================================
 
-export const gameStorage = new GameStorageServiceImpl(
-  new LocalStorageAdapter(),
-);
+export const gameStorage = new GameStorageServiceImpl(new LocalStorageAdapter());

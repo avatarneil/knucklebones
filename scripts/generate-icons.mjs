@@ -10,23 +10,14 @@ async function generateIcons() {
   console.log("Generating PWA icons from favicon.png...");
 
   // Standard icons (any purpose)
-  await sharp(sourceIcon)
-    .resize(192, 192)
-    .png()
-    .toFile(join(publicDir, "icon-192.png"));
+  await sharp(sourceIcon).resize(192, 192).png().toFile(join(publicDir, "icon-192.png"));
   console.log("✓ icon-192.png");
 
-  await sharp(sourceIcon)
-    .resize(512, 512)
-    .png()
-    .toFile(join(publicDir, "icon-512.png"));
+  await sharp(sourceIcon).resize(512, 512).png().toFile(join(publicDir, "icon-512.png"));
   console.log("✓ icon-512.png");
 
   // Apple touch icon
-  await sharp(sourceIcon)
-    .resize(180, 180)
-    .png()
-    .toFile(join(publicDir, "apple-touch-icon.png"));
+  await sharp(sourceIcon).resize(180, 180).png().toFile(join(publicDir, "apple-touch-icon.png"));
   console.log("✓ apple-touch-icon.png");
 
   // Maskable icons (need padding for safe zone - 10% on each side)
@@ -43,17 +34,17 @@ async function generateIcons() {
 
   await sharp({
     create: {
-      width: maskableSize192,
-      height: maskableSize192,
+      background: { r: 18, g: 16, b: 14, alpha: 1 },
       channels: 4,
-      background: { r: 18, g: 16, b: 14, alpha: 1 }, // #12100e
+      height: maskableSize192,
+      width: maskableSize192, // #12100e
     },
   })
     .composite([
       {
         input: iconBuffer192,
-        top: padding192,
         left: padding192,
+        top: padding192,
       },
     ])
     .png()
@@ -67,17 +58,17 @@ async function generateIcons() {
 
   await sharp({
     create: {
-      width: maskableSize512,
-      height: maskableSize512,
+      background: { r: 18, g: 16, b: 14, alpha: 1 },
       channels: 4,
-      background: { r: 18, g: 16, b: 14, alpha: 1 }, // #12100e
+      height: maskableSize512,
+      width: maskableSize512, // #12100e
     },
   })
     .composite([
       {
         input: iconBuffer512,
-        top: padding512,
         left: padding512,
+        top: padding512,
       },
     ])
     .png()

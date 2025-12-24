@@ -7,10 +7,7 @@
 import { NextResponse } from "next/server";
 import { getPlayerRole, getPublicRoomState, getRoom } from "@/lib/kv";
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: roomId } = await params;
 
@@ -21,17 +18,14 @@ export async function GET(
     const room = await getRoom(roomId);
 
     if (!room) {
-      return NextResponse.json(
-        { success: false, error: "Room not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Room not found", success: false }, { status: 404 });
     }
 
     // Get public state
     const publicState = getPublicRoomState(room);
 
     // If player token provided, include their role
-    let role = null;
+    let role;
     let isMyTurn = false;
 
     if (playerToken) {
@@ -41,11 +35,7 @@ export async function GET(
 
     // Check if opponent disconnected (left the room)
     let opponentDisconnected = false;
-    if (
-      role === "player1" &&
-      room.player2 === null &&
-      room.state.turnNumber > 1
-    ) {
+    if (role === "player1" && room.player2 === null && room.state.turnNumber > 1) {
       opponentDisconnected = true;
     } else if (role === "player2" && room.player1 === null) {
       opponentDisconnected = true;
@@ -63,8 +53,8 @@ export async function GET(
   } catch (error) {
     console.error("Error getting room state:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to get room state" },
-      { status: 500 },
+      { error: "Failed to get room state", success: false },
+      { status: 500 }
     );
   }
 }

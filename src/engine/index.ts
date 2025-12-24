@@ -85,11 +85,6 @@ export {
   statesEqual,
 } from "./state";
 // Training
-export {
-  analyzeAllMoves,
-  deepAnalysis,
-  quickAnalysis,
-  simulateMove,
-} from "./training";
+export { analyzeAllMoves, deepAnalysis, quickAnalysis, simulateMove } from "./training";
 // Types
 export * from "./types";

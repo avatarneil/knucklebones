@@ -46,9 +46,6 @@ export interface Theme {
  * Legacy theme - the original KnuckleTrainer theme
  */
 export const legacyTheme: Theme = {
-  id: "legacy",
-  name: "Legacy",
-  description: "The original KnuckleTrainer theme",
   colors: {
     background: "30 20% 6%",
     foreground: "40 30% 95%",
@@ -74,6 +71,9 @@ export const legacyTheme: Theme = {
     dice5: "200 70% 50%",
     dice6: "280 60% 50%",
   },
+  description: "The original KnuckleTrainer theme",
+  id: "legacy",
+  name: "Legacy",
 };
 
 /**
@@ -81,9 +81,6 @@ export const legacyTheme: Theme = {
  * Features deep purples/blacks, bright magentas/pinks, warm oranges, and vibrant greens
  */
 export const cultOfTheLambTheme: Theme = {
-  id: "cult-of-the-lamb",
-  name: "Cult of the Lamb",
-  description: "Inspired by the game's distinctive art style",
   colors: {
     background: "280 30% 8%", // Deep purple-black
     foreground: "320 40% 95%", // Soft pink-white
@@ -109,15 +106,15 @@ export const cultOfTheLambTheme: Theme = {
     dice5: "200 70% 55%", // Cyan-blue
     dice6: "280 70% 60%", // Bright purple
   },
+  description: "Inspired by the game's distinctive art style",
+  id: "cult-of-the-lamb",
+  name: "Cult of the Lamb",
 };
 
 /**
  * Dark theme - modern dark mode with cool tones
  */
 export const darkTheme: Theme = {
-  id: "dark",
-  name: "Dark",
-  description: "Modern dark mode with cool blue tones",
   colors: {
     background: "220 20% 8%",
     foreground: "220 10% 95%",
@@ -143,15 +140,15 @@ export const darkTheme: Theme = {
     dice5: "200 75% 55%",
     dice6: "270 70% 60%",
   },
+  description: "Modern dark mode with cool blue tones",
+  id: "dark",
+  name: "Dark",
 };
 
 /**
  * Light theme - clean and bright
  */
 export const lightTheme: Theme = {
-  id: "light",
-  name: "Light",
-  description: "Clean and bright light mode",
   colors: {
     background: "0 0% 98%",
     foreground: "220 20% 10%",
@@ -177,15 +174,15 @@ export const lightTheme: Theme = {
     dice5: "200 75% 50%",
     dice6: "270 70% 55%",
   },
+  description: "Clean and bright light mode",
+  id: "light",
+  name: "Light",
 };
 
 /**
  * Ocean theme - deep blues and teals
  */
 export const oceanTheme: Theme = {
-  id: "ocean",
-  name: "Ocean",
-  description: "Deep blues and teals like the ocean depths",
   colors: {
     background: "200 40% 8%",
     foreground: "200 20% 95%",
@@ -211,15 +208,15 @@ export const oceanTheme: Theme = {
     dice5: "200 80% 60%",
     dice6: "220 75% 55%",
   },
+  description: "Deep blues and teals like the ocean depths",
+  id: "ocean",
+  name: "Ocean",
 };
 
 /**
  * Forest theme - greens and earth tones
  */
 export const forestTheme: Theme = {
-  id: "forest",
-  name: "Forest",
-  description: "Natural greens and warm earth tones",
   colors: {
     background: "140 30% 8%",
     foreground: "140 20% 95%",
@@ -245,6 +242,9 @@ export const forestTheme: Theme = {
     dice5: "160 70% 50%",
     dice6: "180 70% 50%",
   },
+  description: "Natural greens and warm earth tones",
+  id: "forest",
+  name: "Forest",
 };
 
 /**
@@ -253,9 +253,6 @@ export const forestTheme: Theme = {
  * saving battery and providing perfect contrast with vibrant accent colors
  */
 export const oledDarkTheme: Theme = {
-  id: "oled-dark",
-  name: "OLED Dark",
-  description: "True black theme optimized for OLED displays",
   colors: {
     background: "0 0% 0%", // Pure black - OLED pixels turn off
     foreground: "0 0% 98%", // Near-white for maximum contrast
@@ -281,15 +278,18 @@ export const oledDarkTheme: Theme = {
     dice5: "200 90% 65%", // Bright cyan
     dice6: "280 80% 65%", // Bright purple
   },
+  description: "True black theme optimized for OLED displays",
+  id: "oled-dark",
+  name: "OLED Dark",
 };
 
 export const themes: Record<ThemeId, Theme> = {
-  legacy: legacyTheme,
   "cult-of-the-lamb": cultOfTheLambTheme,
   dark: darkTheme,
+  forest: forestTheme,
+  legacy: legacyTheme,
   light: lightTheme,
   ocean: oceanTheme,
-  forest: forestTheme,
   "oled-dark": oledDarkTheme,
 };
 

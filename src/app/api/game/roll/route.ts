@@ -15,30 +15,21 @@ export async function POST(request: Request) {
     const playerToken = request.headers.get("x-player-token");
 
     if (!playerToken) {
-      return NextResponse.json(
-        { success: false, error: "Player token required" },
-        { status: 401 },
-      );
+      return NextResponse.json({ error: "Player token required", success: false }, { status: 401 });
     }
 
     // Get player session
     const session = await getPlayerSession(playerToken);
 
     if (!session) {
-      return NextResponse.json(
-        { success: false, error: "Not in a room" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Not in a room", success: false }, { status: 400 });
     }
 
     // Get the room
     const room = await getRoom(session.roomId);
 
     if (!room) {
-      return NextResponse.json(
-        { success: false, error: "Room not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Room not found", success: false }, { status: 404 });
     }
 
     // Verify player role
@@ -46,25 +37,19 @@ export async function POST(request: Request) {
 
     if (!role) {
       return NextResponse.json(
-        { success: false, error: "Not a player in this room" },
-        { status: 403 },
+        { error: "Not a player in this room", success: false },
+        { status: 403 }
       );
     }
 
     // Check if it's this player's turn
     if (room.state.currentPlayer !== role) {
-      return NextResponse.json(
-        { success: false, error: "Not your turn" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Not your turn", success: false }, { status: 400 });
     }
 
     // Check if we're in rolling phase
     if (room.state.phase !== "rolling") {
-      return NextResponse.json(
-        { success: false, error: "Cannot roll now" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Cannot roll now", success: false }, { status: 400 });
     }
 
     // Roll the die
@@ -75,14 +60,11 @@ export async function POST(request: Request) {
     await setRoom(room);
 
     return NextResponse.json({
-      success: true,
       dieValue,
+      success: true,
     });
   } catch (error) {
     console.error("Error rolling dice:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to roll dice" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to roll dice", success: false }, { status: 500 });
   }
 }

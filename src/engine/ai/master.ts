@@ -17,10 +17,10 @@ import {
   getOpponentProfile,
   getProfileStats,
   isWasmInitialized,
-  type ProfileOwner,
   recordOpponentMove,
   resetOpponentProfile as resetWasmProfile,
 } from "./wasm-bindings";
+import type { ProfileOwner } from "./wasm-bindings";
 
 // Re-export ProfileOwner for use by other modules
 export type { ProfileOwner };
@@ -37,18 +37,16 @@ export interface MasterProfileStats {
  * Get statistics from the opponent profile for a specific player's perspective.
  * @param owner The player whose profile stats to get (defaults to "player1" for backward compatibility)
  */
-export function getMasterProfileStats(
-  owner: ProfileOwner = "player1",
-): MasterProfileStats {
+export function getMasterProfileStats(owner: ProfileOwner = "player1"): MasterProfileStats {
   const stats = getProfileStats(owner);
 
   if (!stats) {
     return {
-      gamesCompleted: 0,
-      totalMoves: 0,
       attackRate: 0,
       columnFrequencies: [0.333, 0.333, 0.333],
+      gamesCompleted: 0,
       hasLearned: false,
+      totalMoves: 0,
     };
   }
 
@@ -81,7 +79,7 @@ export function recordOpponentMoveForLearning(
   column: ColumnIndex,
   dieValue: DieValue,
   opponentPlayer: Player,
-  masterPlayer?: Player,
+  masterPlayer?: Player
 ): void {
   // Determine which Master AI should learn from this move
   const learningPlayer: Player =
@@ -122,14 +120,14 @@ export function endMasterGame(owner?: ProfileOwner): void {
  */
 export function getMasterMove(state: GameState): ColumnIndex | null {
   if (state.phase !== "placing" || state.currentDie === null) {
-    return null;
+    return;
   }
 
   const result = getMasterMoveWasm(
     state.grids.player1,
     state.grids.player2,
     state.currentPlayer,
-    state.currentDie,
+    state.currentDie
   );
 
   return result as ColumnIndex | null;
@@ -145,7 +143,9 @@ export function isMasterReady(owner: ProfileOwner = "player1"): boolean {
 
 // Helper function to calculate column score
 function calculateColumnScoreSimple(dice: DieValue[]): number {
-  if (dice.length === 0) return 0;
+  if (dice.length === 0) {
+    return 0;
+  }
 
   const counts: Record<number, number> = {};
   for (const d of dice) {

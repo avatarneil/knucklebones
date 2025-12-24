@@ -2,7 +2,7 @@
 
 import { ArrowLeft, RotateCcw, Settings, Trophy } from "lucide-react";
 import Link from "next/link";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useState } from "react";
 import { GameBoard } from "@/components/game";
 import { InstallPrompt } from "@/components/pwa";
 import { Button } from "@/components/ui/button";
@@ -23,46 +23,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createInitialState, DIFFICULTY_CONFIGS } from "@/engine";
-import type { ColumnIndex, DifficultyLevel, GameState } from "@/engine/types";
+import { DIFFICULTY_CONFIGS, createInitialState } from "@/engine";
+import type { DifficultyLevel, GameState } from "@/engine/types";
 import { useGame } from "@/hooks/useGame";
 
 function AIVsAIContent() {
   const [showSettings, setShowSettings] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
-  const [player1Difficulty, setPlayer1Difficulty] =
-    useState<DifficultyLevel>("greedy");
-  const [player2Difficulty, setPlayer2Difficulty] =
-    useState<DifficultyLevel>("medium");
-  const [lastWinner, setLastWinner] = useState<
-    "player1" | "player2" | "draw" | null
-  >(null);
+  const [player1Difficulty, setPlayer1Difficulty] = useState<DifficultyLevel>("greedy");
+  const [player2Difficulty, setPlayer2Difficulty] = useState<DifficultyLevel>("medium");
+  const [lastWinner, setLastWinner] = useState<"player1" | "player2" | "draw" | null>(undefined);
 
-  const [gameInitialState, setGameInitialState] = useState<
-    GameState | undefined
-  >(() => createInitialState());
-
-  const handleGameEnd = useCallback(
-    (winner: "player1" | "player2" | "draw") => {
-      setLastWinner(winner);
-      setShowGameOver(true);
-    },
-    [],
+  const [gameInitialState, setGameInitialState] = useState<GameState | undefined>(() =>
+    createInitialState()
   );
 
+  const handleGameEnd = useCallback((winner: "player1" | "player2" | "draw") => {
+    setLastWinner(winner);
+    setShowGameOver(true);
+  }, []);
+
   const game = useGame({
+    initialState: gameInitialState,
     mode: "ai-vs-ai",
+    onGameEnd: handleGameEnd,
     player1Difficulty,
     player2Difficulty,
-    initialState: gameInitialState,
-    onGameEnd: handleGameEnd,
   });
 
   const handleNewGame = useCallback(() => {
     const newState = createInitialState();
     setGameInitialState(newState);
     setShowGameOver(false);
-    setLastWinner(null);
+    setLastWinner(undefined);
     game.resetGame();
   }, [game]);
 
@@ -72,11 +65,7 @@ function AIVsAIContent() {
       {/* Header */}
       <header className="flex items-center justify-between mb-[clamp(0.5rem,1.5vw,1rem)] flex-shrink-0">
         <Link href="/">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="px-[clamp(0.5rem,1.5vw,0.75rem)]"
-          >
+          <Button variant="ghost" size="sm" className="px-[clamp(0.5rem,1.5vw,0.75rem)]">
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden xs:inline ml-2">Back</span>
           </Button>
@@ -123,9 +112,7 @@ function AIVsAIContent() {
                   <SelectItem key={key} value={key}>
                     <div className="flex flex-col items-start">
                       <span className="font-medium">{config.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {config.description}
-                      </span>
+                      <span className="text-xs text-muted-foreground">{config.description}</span>
                     </div>
                   </SelectItem>
                 ))}
@@ -147,9 +134,7 @@ function AIVsAIContent() {
                   <SelectItem key={key} value={key}>
                     <div className="flex flex-col items-start">
                       <span className="font-medium">{config.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {config.description}
-                      </span>
+                      <span className="text-xs text-muted-foreground">{config.description}</span>
                     </div>
                   </SelectItem>
                 ))}
@@ -179,9 +164,7 @@ function AIVsAIContent() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>AI vs AI Settings</DialogTitle>
-            <DialogDescription>
-              Choose strategies for both AI players
-            </DialogDescription>
+            <DialogDescription>Choose strategies for both AI players</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -189,9 +172,7 @@ function AIVsAIContent() {
               <Label>Player 1 Strategy</Label>
               <Select
                 value={player1Difficulty}
-                onValueChange={(v) =>
-                  setPlayer1Difficulty(v as DifficultyLevel)
-                }
+                onValueChange={(v) => setPlayer1Difficulty(v as DifficultyLevel)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -201,9 +182,7 @@ function AIVsAIContent() {
                     <SelectItem key={key} value={key}>
                       <div className="flex flex-col items-start">
                         <span className="font-medium">{config.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {config.description}
-                        </span>
+                        <span className="text-xs text-muted-foreground">{config.description}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -218,9 +197,7 @@ function AIVsAIContent() {
               <Label>Player 2 Strategy</Label>
               <Select
                 value={player2Difficulty}
-                onValueChange={(v) =>
-                  setPlayer2Difficulty(v as DifficultyLevel)
-                }
+                onValueChange={(v) => setPlayer2Difficulty(v as DifficultyLevel)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -230,9 +207,7 @@ function AIVsAIContent() {
                     <SelectItem key={key} value={key}>
                       <div className="flex flex-col items-start">
                         <span className="font-medium">{config.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {config.description}
-                        </span>
+                        <span className="text-xs text-muted-foreground">{config.description}</span>
                       </div>
                     </SelectItem>
                   ))}

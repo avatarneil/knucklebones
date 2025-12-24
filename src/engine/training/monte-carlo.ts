@@ -12,13 +12,7 @@ import {
   isColumnFull,
 } from "../scorer";
 import { cloneState } from "../state";
-import type {
-  ColumnIndex,
-  DieValue,
-  GameState,
-  MoveAnalysis,
-  Player,
-} from "../types";
+import type { ColumnIndex, DieValue, GameState, MoveAnalysis, Player } from "../types";
 import { ALL_COLUMNS, getOpponent } from "../types";
 
 /**
@@ -61,9 +55,9 @@ export interface MonteCarloConfig {
 }
 
 const DEFAULT_CONFIG: MonteCarloConfig = {
-  simulations: 1000,
-  policy: "mixed",
   heuristicRatio: 0.5,
+  policy: "mixed",
+  simulations: 1000,
 };
 
 /**
@@ -73,7 +67,9 @@ function chooseRandomMove(state: GameState): ColumnIndex | null {
   const grid = state.grids[state.currentPlayer];
   const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(grid[i]));
 
-  if (legalColumns.length === 0) return null;
+  if (legalColumns.length === 0) {
+    return null;
+  }
   return legalColumns[Math.floor(Math.random() * legalColumns.length)];
 }
 
@@ -81,7 +77,9 @@ function chooseRandomMove(state: GameState): ColumnIndex | null {
  * Choose a move using simple heuristics
  */
 function chooseHeuristicMove(state: GameState): ColumnIndex | null {
-  if (state.currentDie === null) return null;
+  if (state.currentDie === null) {
+    return null;
+  }
 
   const player = state.currentPlayer;
   const opponent = getOpponent(player);
@@ -90,8 +88,12 @@ function chooseHeuristicMove(state: GameState): ColumnIndex | null {
   const dieValue = state.currentDie;
 
   const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(grid[i]));
-  if (legalColumns.length === 0) return null;
-  if (legalColumns.length === 1) return legalColumns[0];
+  if (legalColumns.length === 0) {
+    return null;
+  }
+  if (legalColumns.length === 1) {
+    return legalColumns[0];
+  }
 
   // Score each move
   const scored = legalColumns.map((col) => {
@@ -119,18 +121,21 @@ function chooseHeuristicMove(state: GameState): ColumnIndex | null {
 function chooseMove(
   state: GameState,
   policy: SimulationPolicy,
-  heuristicRatio: number,
+  heuristicRatio: number
 ): ColumnIndex | null {
   switch (policy) {
-    case "random":
+    case "random": {
       return chooseRandomMove(state);
-    case "heuristic":
+    }
+    case "heuristic": {
       return chooseHeuristicMove(state);
-    case "mixed":
+    }
+    case "mixed": {
       if (Math.random() < heuristicRatio) {
         return chooseHeuristicMove(state);
       }
       return chooseRandomMove(state);
+    }
   }
 }
 
@@ -140,7 +145,7 @@ function chooseMove(
 function simulateGame(
   state: GameState,
   policy: SimulationPolicy,
-  heuristicRatio: number,
+  heuristicRatio: number
 ): { winner: Player | "draw" | null; scoreDiff: number } {
   let currentState = cloneState(state);
   let maxMoves = 50; // Safety limit
@@ -157,10 +162,14 @@ function simulateGame(
     // Placing phase
     if (currentState.phase === "placing") {
       const move = chooseMove(currentState, policy, heuristicRatio);
-      if (move === null) break;
+      if (move === null) {
+        break;
+      }
 
       const result = applyMove(currentState, move);
-      if (!result) break;
+      if (!result) {
+        break;
+      }
 
       currentState = result.newState;
     }
@@ -170,8 +179,8 @@ function simulateGame(
   const score2 = calculateGridScore(currentState.grids.player2).total;
 
   return {
-    winner: currentState.winner,
     scoreDiff: score1 - score2,
+    winner: currentState.winner,
   };
 }
 
@@ -181,19 +190,19 @@ function simulateGame(
 export function simulateMove(
   state: GameState,
   column: ColumnIndex,
-  config: MonteCarloConfig = DEFAULT_CONFIG,
+  config: MonteCarloConfig = DEFAULT_CONFIG
 ): SimulationResult {
   // Apply the move first
   const result = applyMove(state, column);
   if (!result) {
     return {
+      averageScoreDiff: 0,
       column,
-      wins: 0,
-      losses: 0,
       draws: 0,
+      losses: 0,
       totalGames: 0,
       winProbability: 0,
-      averageScoreDiff: 0,
+      wins: 0,
     };
   }
 
@@ -204,11 +213,7 @@ export function simulateMove(
   let totalScoreDiff = 0;
 
   for (let i = 0; i < config.simulations; i++) {
-    const simResult = simulateGame(
-      result.newState,
-      config.policy,
-      config.heuristicRatio,
-    );
+    const simResult = simulateGame(result.newState, config.policy, config.heuristicRatio);
 
     if (simResult.winner === player) {
       wins++;
@@ -219,21 +224,20 @@ export function simulateMove(
     }
 
     // Adjust score diff based on player perspective
-    const scoreDiff =
-      player === "player1" ? simResult.scoreDiff : -simResult.scoreDiff;
+    const scoreDiff = player === "player1" ? simResult.scoreDiff : -simResult.scoreDiff;
     totalScoreDiff += scoreDiff;
   }
 
   const totalGames = wins + losses + draws;
 
   return {
+    averageScoreDiff: totalGames > 0 ? totalScoreDiff / totalGames : 0,
     column,
-    wins,
-    losses,
     draws,
+    losses,
     totalGames,
     winProbability: totalGames > 0 ? wins / totalGames : 0,
-    averageScoreDiff: totalGames > 0 ? totalScoreDiff / totalGames : 0,
+    wins,
   };
 }
 
@@ -242,12 +246,12 @@ export function simulateMove(
  */
 export function analyzeAllMoves(
   state: GameState,
-  config: MonteCarloConfig = DEFAULT_CONFIG,
+  config: MonteCarloConfig = DEFAULT_CONFIG
 ): MoveAnalysisResult {
   if (state.phase !== "placing" || state.currentDie === null) {
     return {
-      moves: [],
       bestMove: null,
+      moves: [],
       simulationsPerMove: config.simulations,
     };
   }
@@ -262,8 +266,8 @@ export function analyzeAllMoves(
 
   if (legalColumns.length === 0) {
     return {
-      moves: [],
       bestMove: null,
+      moves: [],
       simulationsPerMove: config.simulations,
     };
   }
@@ -274,16 +278,14 @@ export function analyzeAllMoves(
 
     // Calculate immediate gains
     const immediateScoreGain = calculateMoveScoreGain(grid, column, dieValue);
-    const opponentDiceRemoved = oppGrid[column].filter(
-      (d) => d === dieValue,
-    ).length;
+    const opponentDiceRemoved = oppGrid[column].filter((d) => d === dieValue).length;
 
     return {
       column,
-      winProbability: simResult.winProbability,
       expectedScore: simResult.averageScoreDiff,
       immediateScoreGain,
       opponentDiceRemoved,
+      winProbability: simResult.winProbability,
     };
   });
 
@@ -291,8 +293,8 @@ export function analyzeAllMoves(
   moves.sort((a, b) => b.winProbability - a.winProbability);
 
   return {
-    moves,
     bestMove: moves.length > 0 ? moves[0].column : null,
+    moves,
     simulationsPerMove: config.simulations,
   };
 }
@@ -300,27 +302,21 @@ export function analyzeAllMoves(
 /**
  * Quick analysis with fewer simulations (for UI responsiveness)
  */
-export function quickAnalysis(
-  state: GameState,
-  simulations = 200,
-): MoveAnalysisResult {
+export function quickAnalysis(state: GameState, simulations = 200): MoveAnalysisResult {
   return analyzeAllMoves(state, {
-    simulations,
-    policy: "mixed",
     heuristicRatio: 0.3,
+    policy: "mixed",
+    simulations,
   });
 }
 
 /**
  * Deep analysis with more simulations (for accuracy)
  */
-export function deepAnalysis(
-  state: GameState,
-  simulations = 2000,
-): MoveAnalysisResult {
+export function deepAnalysis(state: GameState, simulations = 2000): MoveAnalysisResult {
   return analyzeAllMoves(state, {
-    simulations,
-    policy: "heuristic",
     heuristicRatio: 0.7,
+    policy: "heuristic",
+    simulations,
   });
 }

@@ -7,25 +7,23 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import "./globals.css";
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
   subsets: ["latin"],
+  variable: "--font-geist-sans",
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
   subsets: ["latin"],
+  variable: "--font-geist-mono",
 });
 
 export const metadata: Metadata = {
-  title: "KnuckleTrainer - Master Knucklebones",
-  description:
-    "Master Knucklebones, the dice game from Cult of the Lamb. Train against AI opponents with 5 difficulty levels and win probability analysis.",
-  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "KnuckleTrainer",
   },
+  description:
+    "Master Knucklebones, the dice game from Cult of the Lamb. Train against AI opponents with 5 difficulty levels and win probability analysis.",
   formatDetection: {
     telephone: false,
   },
@@ -36,15 +34,17 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
+  manifest: "/manifest.json",
+  title: "KnuckleTrainer - Master Knucklebones",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#12100e",
-  width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  themeColor: "#12100e",
   userScalable: false,
   viewportFit: "cover",
+  width: "device-width",
 };
 
 export default function RootLayout({
@@ -54,9 +54,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider>
           <ServiceWorkerRegistration />
           <TooltipProvider delayDuration={300}>{children}</TooltipProvider>

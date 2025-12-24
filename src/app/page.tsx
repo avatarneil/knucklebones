@@ -1,26 +1,11 @@
 "use client";
 
-import {
-  Bot,
-  Dices,
-  Eye,
-  GraduationCap,
-  Sparkles,
-  Swords,
-  TrendingUp,
-  Users,
-} from "lucide-react";
+import { Bot, Dices, Eye, GraduationCap, Sparkles, Swords, TrendingUp, Users } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -67,31 +52,22 @@ export default function Home() {
               <Swords className="w-5 h-5 text-primary" />
               Play vs AI
             </CardTitle>
-            <CardDescription>
-              Challenge the computer at 5 difficulty levels
-            </CardDescription>
+            <CardDescription>Challenge the computer at 5 difficulty levels</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Difficulty Select */}
             <div className="space-y-2">
               <Label>Difficulty</Label>
-              <Select
-                value={difficulty}
-                onValueChange={(v) => setDifficulty(v as DifficultyLevel)}
-              >
+              <Select value={difficulty} onValueChange={(v) => setDifficulty(v as DifficultyLevel)}>
                 <SelectTrigger>
-                  <SelectValue>
-                    {DIFFICULTY_CONFIGS[difficulty].name}
-                  </SelectValue>
+                  <SelectValue>{DIFFICULTY_CONFIGS[difficulty].name}</SelectValue>
                 </SelectTrigger>
                 <SelectContent position="popper" sideOffset={4}>
                   {Object.entries(DIFFICULTY_CONFIGS).map(([key, config]) => (
                     <SelectItem key={key} value={key} className="py-2">
                       <div className="flex flex-col items-start">
                         <span className="font-medium">{config.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {config.description}
-                        </span>
+                        <span className="text-xs text-muted-foreground">{config.description}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -108,16 +84,10 @@ export default function Home() {
                 <GraduationCap className="w-4 h-4 text-accent" />
                 <Label htmlFor="training-mode">Training Mode</Label>
               </div>
-              <Switch
-                id="training-mode"
-                checked={trainingMode}
-                onCheckedChange={setTrainingMode}
-              />
+              <Switch id="training-mode" checked={trainingMode} onCheckedChange={setTrainingMode} />
             </div>
             {trainingMode && (
-              <p className="text-xs text-muted-foreground">
-                Shows win probability for each move
-              </p>
+              <p className="text-xs text-muted-foreground">Shows win probability for each move</p>
             )}
 
             <Link
@@ -144,8 +114,7 @@ export default function Home() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Create a room and share the code with a friend, or join an
-              existing room.
+              Create a room and share the code with a friend, or join an existing room.
             </p>
 
             <Link href="/multiplayer" className="block">
@@ -165,14 +134,12 @@ export default function Home() {
               <Bot className="w-5 h-5 text-accent" />
               AI vs AI
             </CardTitle>
-            <CardDescription>
-              Watch two AI strategies compete against each other
-            </CardDescription>
+            <CardDescription>Watch two AI strategies compete against each other</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Pit different AI difficulty levels against each other and observe
-              their strategies in real-time.
+              Pit different AI difficulty levels against each other and observe their strategies in
+              real-time.
             </p>
 
             <Link href="/ai-vs-ai" className="block">
@@ -192,14 +159,11 @@ export default function Home() {
               <Eye className="w-5 h-5 text-secondary" />
               Spectate
             </CardTitle>
-            <CardDescription>
-              Watch live multiplayer and AI matches
-            </CardDescription>
+            <CardDescription>Watch live multiplayer and AI matches</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Join as a spectator to watch public games in progress and learn
-              from other players.
+              Join as a spectator to watch public games in progress and learn from other players.
             </p>
 
             <Link href="/watch" className="block">
@@ -225,8 +189,8 @@ export default function Home() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Compare different AI strategies by running mass simulations. View
-              win rates, score distributions, and replay individual games.
+              Compare different AI strategies by running mass simulations. View win rates, score
+              distributions, and replay individual games.
             </p>
 
             <Link href="/simulation" className="block">
@@ -269,8 +233,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="mt-12 text-center text-sm text-muted-foreground">
         <p>
-          <span className="font-medium">KnuckleTrainer</span> - Master the game
-          of Knucklebones
+          <span className="font-medium">KnuckleTrainer</span> - Master the game of Knucklebones
         </p>
         <p className="mt-1">Inspired by Cult of the Lamb by Massive Monster</p>
       </footer>

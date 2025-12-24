@@ -1,15 +1,14 @@
 "use client";
 
-import { Download, Share2, Smartphone, X, Zap } from "lucide-react";
+import { Download, Smartphone, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useInstallPrompt } from "@/hooks/usePWA";
 
 export function InstallPrompt() {
-  const { showPrompt, install, dismissPrompt, canInstall, isIOSDevice } =
-    useInstallPrompt();
+  const { showPrompt, install, dismissPrompt, canInstall, isIOSDevice } = useInstallPrompt();
 
   if (!showPrompt || !canInstall) {
-    return null;
+    return;
   }
 
   return (
@@ -33,9 +32,8 @@ export function InstallPrompt() {
             {isIOSDevice ? (
               <>
                 <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-                  Install this app on your iPhone for the best experience! Tap
-                  the share button below, then select &quot;Add to Home
-                  Screen&quot;.
+                  Install this app on your iPhone for the best experience! Tap the share button
+                  below, then select &quot;Add to Home Screen&quot;.
                 </p>
                 <div className="flex items-center gap-3 mt-4">
                   <div className="flex-1 text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg border border-border/50">
@@ -60,8 +58,8 @@ export function InstallPrompt() {
             ) : (
               <>
                 <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-                  Get the full app experience! Play offline, faster loading, and
-                  instant access from your home screen.
+                  Get the full app experience! Play offline, faster loading, and instant access from
+                  your home screen.
                 </p>
                 {/* Action buttons */}
                 <div className="flex items-center gap-3 mt-4">

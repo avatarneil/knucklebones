@@ -56,23 +56,25 @@ const ROOM_ID_KEY = "knucklebones_room_id";
 
 export function useMultiplayer(): UseMultiplayerReturn {
   const [isConnected, setIsConnected] = useState(true); // Always "connected" with polling
-  const [roomId, setRoomId] = useState<string | null>(null);
-  const [role, setRole] = useState<Player | null>(null);
-  const [gameState, setGameState] = useState<GameState | null>(null);
-  const [player1Name, setPlayer1Name] = useState<string | null>(null);
-  const [player2Name, setPlayer2Name] = useState<string | null>(null);
+  const [roomId, setRoomId] = useState<string | null>(undefined);
+  const [role, setRole] = useState<Player | null>(undefined);
+  const [gameState, setGameState] = useState<GameState | null>(undefined);
+  const [player1Name, setPlayer1Name] = useState<string | null>(undefined);
+  const [player2Name, setPlayer2Name] = useState<string | null>(undefined);
   const [isWaitingForOpponent, setIsWaitingForOpponent] = useState(false);
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [opponentDisconnected, setOpponentDisconnected] = useState(false);
   const [rematchRequested, setRematchRequested] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(undefined);
 
   const playerTokenRef = useRef<string | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get stored player token
   const getPlayerToken = useCallback(() => {
-    if (playerTokenRef.current) return playerTokenRef.current;
+    if (playerTokenRef.current) {
+      return playerTokenRef.current;
+    }
     if (typeof window !== "undefined") {
       playerTokenRef.current = sessionStorage.getItem(PLAYER_TOKEN_KEY);
     }
@@ -96,7 +98,7 @@ export function useMultiplayer(): UseMultiplayerReturn {
     if (typeof window !== "undefined") {
       return sessionStorage.getItem(ROOM_ID_KEY);
     }
-    return null;
+    return;
   }, []);
 
   // Set stored room ID
@@ -115,7 +117,9 @@ export function useMultiplayer(): UseMultiplayerReturn {
     const currentRoomId = roomId || getStoredRoomId();
     const token = getPlayerToken();
 
-    if (!currentRoomId) return;
+    if (!currentRoomId) {
+      return;
+    }
 
     try {
       const response = await fetch(`/api/rooms/${currentRoomId}/state`, {
@@ -125,10 +129,10 @@ export function useMultiplayer(): UseMultiplayerReturn {
       if (!response.ok) {
         if (response.status === 404) {
           // Room no longer exists
-          setRoomId(null);
-          setStoredRoomId(null);
-          setPlayerToken(null);
-          setGameState(null);
+          setRoomId(undefined);
+          setStoredRoomId(undefined);
+          setPlayerToken(undefined);
+          setGameState(undefined);
           setError("Room no longer exists");
           return;
         }
@@ -139,8 +143,8 @@ export function useMultiplayer(): UseMultiplayerReturn {
 
       if (data.success) {
         setGameState(data.state);
-        setPlayer1Name(data.player1?.name ?? null);
-        setPlayer2Name(data.player2?.name ?? null);
+        setPlayer1Name(data.player1?.name ?? undefined);
+        setPlayer2Name(data.player2?.name ?? undefined);
         setRoomId(data.roomId);
         setRole(data.role);
         setIsMyTurn(data.isMyTurn);
@@ -151,23 +155,19 @@ export function useMultiplayer(): UseMultiplayerReturn {
         const opponent = data.role === "player1" ? "player2" : "player1";
         setRematchRequested(data.rematchRequested === opponent);
 
-        setError(null);
+        setError(undefined);
       }
-    } catch (err) {
-      console.error("Error polling room state:", err);
+    } catch (error) {
+      console.error("Error polling room state:", error);
       // Don't set error on transient network issues
     }
-  }, [
-    roomId,
-    getPlayerToken,
-    getStoredRoomId,
-    setStoredRoomId,
-    setPlayerToken,
-  ]);
+  }, [roomId, getPlayerToken, getStoredRoomId, setStoredRoomId, setPlayerToken]);
 
   // Start polling
   const startPolling = useCallback(() => {
-    if (pollingRef.current) return;
+    if (pollingRef.current) {
+      return;
+    }
 
     // Initial poll
     pollRoomState();
@@ -180,7 +180,7 @@ export function useMultiplayer(): UseMultiplayerReturn {
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
-      pollingRef.current = null;
+      pollingRef.current = undefined;
     }
   }, []);
 
@@ -205,9 +205,9 @@ export function useMultiplayer(): UseMultiplayerReturn {
     async (playerName: string, isPublic = false): Promise<string> => {
       try {
         const response = await fetch("/api/rooms/create", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ playerName, isPublic }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
         });
 
         const data = await response.json();
@@ -226,12 +226,12 @@ export function useMultiplayer(): UseMultiplayerReturn {
         startPolling();
 
         return data.roomId;
-      } catch (err) {
-        console.error("Error creating room:", err);
-        throw err;
+      } catch (error) {
+        console.error("Error creating room:", error);
+        throw error;
       }
     },
-    [setPlayerToken, setStoredRoomId, startPolling],
+    [setPlayerToken, setStoredRoomId, startPolling]
   );
 
   // Join room
@@ -239,9 +239,9 @@ export function useMultiplayer(): UseMultiplayerReturn {
     async (roomIdToJoin: string, playerName: string): Promise<boolean> => {
       try {
         const response = await fetch("/api/rooms/join", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ roomId: roomIdToJoin, playerName }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
         });
 
         const data = await response.json();
@@ -255,19 +255,19 @@ export function useMultiplayer(): UseMultiplayerReturn {
         setStoredRoomId(data.roomId);
         setRoomId(data.roomId);
         setRole(data.role);
-        setError(null);
+        setError(undefined);
 
         // Start polling
         startPolling();
 
         return true;
-      } catch (err) {
-        console.error("Error joining room:", err);
+      } catch (error) {
+        console.error("Error joining room:", error);
         setError("Failed to join room");
         return false;
       }
     },
-    [setPlayerToken, setStoredRoomId, startPolling],
+    [setPlayerToken, setStoredRoomId, startPolling]
   );
 
   // Leave room
@@ -277,22 +277,22 @@ export function useMultiplayer(): UseMultiplayerReturn {
     if (token) {
       try {
         await fetch("/api/rooms/leave", {
-          method: "POST",
           headers: { "x-player-token": token },
+          method: "POST",
         });
-      } catch (err) {
-        console.error("Error leaving room:", err);
+      } catch (error) {
+        console.error("Error leaving room:", error);
       }
     }
 
     stopPolling();
-    setPlayerToken(null);
-    setStoredRoomId(null);
-    setRoomId(null);
-    setRole(null);
-    setGameState(null);
-    setPlayer1Name(null);
-    setPlayer2Name(null);
+    setPlayerToken(undefined);
+    setStoredRoomId(undefined);
+    setRoomId(undefined);
+    setRole(undefined);
+    setGameState(undefined);
+    setPlayer1Name(undefined);
+    setPlayer2Name(undefined);
     setIsWaitingForOpponent(false);
     setIsMyTurn(false);
     setOpponentDisconnected(false);
@@ -305,30 +305,30 @@ export function useMultiplayer(): UseMultiplayerReturn {
 
     if (!token) {
       setError("Not connected");
-      return null;
+      return;
     }
 
     try {
       const response = await fetch("/api/game/roll", {
-        method: "POST",
         headers: { "x-player-token": token },
+        method: "POST",
       });
 
       const data = await response.json();
 
       if (!data.success) {
         setError(data.error || "Failed to roll dice");
-        return null;
+        return;
       }
 
       // Poll immediately to get updated state
       await pollRoomState();
 
       return data.dieValue;
-    } catch (err) {
-      console.error("Error rolling dice:", err);
+    } catch (error) {
+      console.error("Error rolling dice:", error);
       setError("Failed to roll dice");
-      return null;
+      return;
     }
   }, [getPlayerToken, pollRoomState]);
 
@@ -344,12 +344,12 @@ export function useMultiplayer(): UseMultiplayerReturn {
 
       try {
         const response = await fetch("/api/game/place", {
-          method: "POST",
+          body: JSON.stringify({ column }),
           headers: {
             "Content-Type": "application/json",
             "x-player-token": token,
           },
-          body: JSON.stringify({ column }),
+          method: "POST",
         });
 
         const data = await response.json();
@@ -363,31 +363,33 @@ export function useMultiplayer(): UseMultiplayerReturn {
         await pollRoomState();
 
         return true;
-      } catch (err) {
-        console.error("Error placing die:", err);
+      } catch (error) {
+        console.error("Error placing die:", error);
         setError("Failed to place die");
         return false;
       }
     },
-    [getPlayerToken, pollRoomState],
+    [getPlayerToken, pollRoomState]
   );
 
   // Request rematch
   const requestRematch = useCallback(async () => {
     const token = getPlayerToken();
 
-    if (!token) return;
+    if (!token) {
+      return;
+    }
 
     try {
       await fetch("/api/game/rematch", {
-        method: "POST",
         headers: { "x-player-token": token },
+        method: "POST",
       });
 
       // Poll immediately to get updated state
       await pollRoomState();
-    } catch (err) {
-      console.error("Error requesting rematch:", err);
+    } catch (error) {
+      console.error("Error requesting rematch:", error);
     }
   }, [getPlayerToken, pollRoomState]);
 
@@ -409,32 +411,33 @@ export function useMultiplayer(): UseMultiplayerReturn {
   }, [roomId, startPolling, stopPolling]);
 
   // Cleanup on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       stopPolling();
-    };
-  }, [stopPolling]);
+    },
+    [stopPolling]
+  );
 
   return {
-    isConnected,
+    acceptRematch,
     connect,
-    disconnect,
-    roomId,
-    role,
     createRoom,
+    disconnect,
+    error,
+    gameState,
+    isConnected,
+    isMyTurn,
+    isWaitingForOpponent,
     joinRoom,
     leaveRoom,
-    gameState,
+    opponentDisconnected,
+    placeDie,
     player1Name,
     player2Name,
-    isWaitingForOpponent,
-    isMyTurn,
-    rollDice,
-    placeDie,
-    requestRematch,
-    acceptRematch,
-    opponentDisconnected,
     rematchRequested,
-    error,
+    requestRematch,
+    role,
+    rollDice,
+    roomId,
   };
 }

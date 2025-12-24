@@ -7,6 +7,7 @@ This project includes Rust/WASM components that need to be built during CI/CD an
 ### GitHub Actions
 
 The project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that:
+
 - Sets up Rust and wasm-pack
 - Builds the WASM module in release mode
 - Builds the Next.js application
@@ -15,6 +16,7 @@ The project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that
 ### Vercel Deployment
 
 Vercel is configured via `vercel.json` to:
+
 - Use a custom build script (`vercel-build.sh`) that installs Rust/wasm-pack if needed
 - Build the WASM module before building Next.js
 - Handle Rust toolchain installation automatically
@@ -74,6 +76,7 @@ npm run dev
 ## WASM Artifacts
 
 After building, the following files should exist in `wasm/pkg/`:
+
 - `knucklebones_ai_bg.wasm` - Compiled WASM binary
 - `knucklebones_ai.js` - JavaScript bindings
 - `knucklebones_ai.d.ts` - TypeScript definitions

@@ -5,12 +5,7 @@
  */
 
 import { NextResponse } from "next/server";
-import {
-  generatePlayerToken,
-  getRoom,
-  setPlayerSession,
-  setRoom,
-} from "@/lib/kv";
+import { generatePlayerToken, getRoom, setPlayerSession, setRoom } from "@/lib/kv";
 
 interface JoinRoomRequest {
   roomId: string;
@@ -24,52 +19,40 @@ export async function POST(request: Request) {
     const playerName = body.playerName?.trim() || "Player 2";
 
     if (!roomId) {
-      return NextResponse.json(
-        { success: false, error: "Room code required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Room code required", success: false }, { status: 400 });
     }
 
     // Get the room
     const room = await getRoom(roomId);
 
     if (!room) {
-      return NextResponse.json(
-        { success: false, error: "Room not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Room not found", success: false }, { status: 404 });
     }
 
     if (room.player2) {
-      return NextResponse.json(
-        { success: false, error: "Room is full" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Room is full", success: false }, { status: 400 });
     }
 
     // Generate player token and join
     const playerToken = generatePlayerToken();
 
     room.player2 = {
-      token: playerToken,
       name: playerName,
+      token: playerToken,
     };
 
     // Save room and player session
     await setRoom(room);
-    await setPlayerSession(playerToken, { roomId, role: "player2" });
+    await setPlayerSession(playerToken, { role: "player2", roomId });
 
     return NextResponse.json({
-      success: true,
-      roomId: room.id,
       playerToken,
       role: "player2",
+      roomId: room.id,
+      success: true,
     });
   } catch (error) {
     console.error("Error joining room:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to join room" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to join room", success: false }, { status: 500 });
   }
 }

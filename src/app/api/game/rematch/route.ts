@@ -14,30 +14,21 @@ export async function POST(request: Request) {
     const playerToken = request.headers.get("x-player-token");
 
     if (!playerToken) {
-      return NextResponse.json(
-        { success: false, error: "Player token required" },
-        { status: 401 },
-      );
+      return NextResponse.json({ error: "Player token required", success: false }, { status: 401 });
     }
 
     // Get player session
     const session = await getPlayerSession(playerToken);
 
     if (!session) {
-      return NextResponse.json(
-        { success: false, error: "Not in a room" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Not in a room", success: false }, { status: 400 });
     }
 
     // Get the room
     const room = await getRoom(session.roomId);
 
     if (!room) {
-      return NextResponse.json(
-        { success: false, error: "Room not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Room not found", success: false }, { status: 404 });
     }
 
     // Verify player role
@@ -45,8 +36,8 @@ export async function POST(request: Request) {
 
     if (!role) {
       return NextResponse.json(
-        { success: false, error: "Not a player in this room" },
-        { status: 403 },
+        { error: "Not a player in this room", success: false },
+        { status: 403 }
       );
     }
 
@@ -56,13 +47,13 @@ export async function POST(request: Request) {
     if (room.rematchRequested === opponent) {
       // Both players want rematch - start new game
       room.state = createInitialState();
-      room.rematchRequested = null;
+      room.rematchRequested = undefined;
 
       await setRoom(room);
 
       return NextResponse.json({
-        success: true,
         rematchStarted: true,
+        success: true,
       });
     }
 
@@ -71,14 +62,14 @@ export async function POST(request: Request) {
     await setRoom(room);
 
     return NextResponse.json({
-      success: true,
       rematchRequested: true,
+      success: true,
     });
   } catch (error) {
     console.error("Error requesting rematch:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to request rematch" },
-      { status: 500 },
+      { error: "Failed to request rematch", success: false },
+      { status: 500 }
     );
   }
 }

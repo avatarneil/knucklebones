@@ -62,10 +62,7 @@ export function DiceRoller({
             value={displayValue}
             size="lg"
             isRolling={isAnimating}
-            className={cn(
-              "transition-transform",
-              isAnimating && "animate-shake",
-            )}
+            className={cn("transition-transform", isAnimating && "animate-shake")}
           />
         ) : (
           <div className="w-[clamp(3rem,10vmin,5.5rem)] h-[clamp(3rem,10vmin,5.5rem)] rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
@@ -98,9 +95,7 @@ export function DiceRoller({
           )}
         </div>
       ) : (
-        <div className="text-[clamp(0.75rem,2vw,0.875rem)] text-muted-foreground">
-          Waiting...
-        </div>
+        <div className="text-[clamp(0.75rem,2vw,0.875rem)] text-muted-foreground">Waiting...</div>
       )}
     </div>
   );

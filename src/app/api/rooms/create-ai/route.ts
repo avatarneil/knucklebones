@@ -6,7 +6,8 @@
 
 import { NextResponse } from "next/server";
 import { createInitialState } from "@/engine";
-import { type GameRoom, generateRoomCode, setRoom } from "@/lib/kv";
+import { generateRoomCode, setRoom } from "@/lib/kv";
+import type { GameRoom } from "@/lib/kv";
 
 interface CreateAIRoomRequest {
   playerName: string;
@@ -30,7 +31,12 @@ export async function POST(request: Request) {
 
     // Create the room (AI matches are always public)
     const room: GameRoom = {
+      createdAt: Date.now(),
+      followedBy: body.followedBy || [],
+      gameType: "ai",
       id: roomId,
+      isPublic: true,
+      lastActivity: Date.now(),
       player1: {
         token: "", // No token needed for AI matches
         name: playerName,
@@ -39,28 +45,23 @@ export async function POST(request: Request) {
         token: "",
         name: `${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} AI`,
       },
-      state: body.initialState || createInitialState(),
       rematchRequested: null,
-      createdAt: Date.now(),
-      lastActivity: Date.now(),
-      isPublic: true,
-      gameType: "ai",
-      watchers: [],
-      followedBy: body.followedBy || [], // Migrate followers from previous match
+      state: body.initialState || createInitialState(),
+      watchers: [], // Migrate followers from previous match
     };
 
     // Save room
     await setRoom(room);
 
     return NextResponse.json({
-      success: true,
       roomId,
+      success: true,
     });
   } catch (error) {
     console.error("Error creating AI room:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to create AI room" },
-      { status: 500 },
+      { error: "Failed to create AI room", success: false },
+      { status: 500 }
     );
   }
 }

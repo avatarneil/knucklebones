@@ -7,7 +7,7 @@ export function OfflineIndicator() {
   const isOnline = useOnlineStatus();
 
   if (isOnline) {
-    return null;
+    return;
   }
 
   return (

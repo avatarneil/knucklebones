@@ -5,20 +5,13 @@
  */
 
 import { calculateGridScore } from "./scorer";
-import type {
-  Column,
-  DieValue,
-  GameConfig,
-  GameState,
-  Grid,
-  Player,
-} from "./types";
+import type { Column, DieValue, GameConfig, GameState, Grid, Player } from "./types";
 
 /**
  * Create an empty column
  */
 export function createEmptyColumn(): Column {
-  return [null, null, null];
+  return [undefined, undefined, undefined];
 }
 
 /**
@@ -33,16 +26,16 @@ export function createEmptyGrid(): Grid {
  */
 export function createInitialState(_config?: GameConfig): GameState {
   return {
+    currentDie: null,
+    currentPlayer: "player1",
     grids: {
       player1: createEmptyGrid(),
       player2: createEmptyGrid(),
     },
-    currentPlayer: "player1",
-    currentDie: null,
-    phase: "rolling",
-    winner: null,
-    turnNumber: 1,
     moveHistory: [],
+    phase: "rolling",
+    turnNumber: 1,
+    winner: null,
   };
 }
 
@@ -51,16 +44,16 @@ export function createInitialState(_config?: GameConfig): GameState {
  */
 export function cloneState(state: GameState): GameState {
   return {
+    currentDie: state.currentDie,
+    currentPlayer: state.currentPlayer,
     grids: {
       player1: state.grids.player1.map((col) => [...col]) as Grid,
       player2: state.grids.player2.map((col) => [...col]) as Grid,
     },
-    currentPlayer: state.currentPlayer,
-    currentDie: state.currentDie,
-    phase: state.phase,
-    winner: state.winner,
-    turnNumber: state.turnNumber,
     moveHistory: [...state.moveHistory],
+    phase: state.phase,
+    turnNumber: state.turnNumber,
+    winner: state.winner,
   };
 }
 
@@ -91,10 +84,7 @@ export function getDetailedScores(state: GameState) {
  * Count total dice on a grid
  */
 export function countDice(grid: Grid): number {
-  return grid.reduce(
-    (total, col) => total + col.filter((d) => d !== null).length,
-    0,
-  );
+  return grid.reduce((total, col) => total + col.filter((d) => d !== null).length, 0);
 }
 
 /**
@@ -110,12 +100,14 @@ export function getGameProgress(state: GameState): number {
 /**
  * Check if it's early, mid, or late game
  */
-export function getGamePhaseDescription(
-  state: GameState,
-): "early" | "mid" | "late" {
+export function getGamePhaseDescription(state: GameState): "early" | "mid" | "late" {
   const progress = getGameProgress(state);
-  if (progress < 0.33) return "early";
-  if (progress < 0.67) return "mid";
+  if (progress < 0.33) {
+    return "early";
+  }
+  if (progress < 0.67) {
+    return "mid";
+  }
   return "late";
 }
 
@@ -140,19 +132,19 @@ export function createStateFromGrids(
   player1Grid: Grid,
   player2Grid: Grid,
   currentPlayer: Player = "player1",
-  currentDie: DieValue | null = null,
+  currentDie: DieValue | null = undefined
 ): GameState {
   return {
+    currentDie,
+    currentPlayer,
     grids: {
       player1: player1Grid.map((col) => [...col]) as Grid,
       player2: player2Grid.map((col) => [...col]) as Grid,
     },
-    currentPlayer,
-    currentDie,
-    phase: currentDie ? "placing" : "rolling",
-    winner: null,
-    turnNumber: 1,
     moveHistory: [],
+    phase: currentDie ? "placing" : "rolling",
+    turnNumber: 1,
+    winner: null,
   };
 }
 

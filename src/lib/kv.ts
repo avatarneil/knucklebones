@@ -94,19 +94,14 @@ export async function deleteRoom(roomId: string): Promise<void> {
 /**
  * Get player session by token
  */
-export async function getPlayerSession(
-  token: string,
-): Promise<PlayerSession | null> {
+export async function getPlayerSession(token: string): Promise<PlayerSession | null> {
   return kv.get<PlayerSession>(`${PLAYER_PREFIX}${token}`);
 }
 
 /**
  * Save player session (with TTL matching room)
  */
-export async function setPlayerSession(
-  token: string,
-  session: PlayerSession,
-): Promise<void> {
+export async function setPlayerSession(token: string, session: PlayerSession): Promise<void> {
   await kv.set(`${PLAYER_PREFIX}${token}`, session, { ex: ROOM_TTL });
 }
 
@@ -121,9 +116,13 @@ export async function deletePlayerSession(token: string): Promise<void> {
  * Get player's role in a room by their token
  */
 export function getPlayerRole(room: GameRoom, token: string): Player | null {
-  if (room.player1?.token === token) return "player1";
-  if (room.player2?.token === token) return "player2";
-  return null;
+  if (room.player1?.token === token) {
+    return "player1";
+  }
+  if (room.player2?.token === token) {
+    return "player2";
+  }
+  return;
 }
 
 /**
@@ -138,14 +137,14 @@ export function isRoomReady(room: GameRoom): boolean {
  */
 export function getPublicRoomState(room: GameRoom) {
   return {
-    roomId: room.id,
-    state: room.state,
+    gameType: room.gameType,
+    isPublic: room.isPublic,
+    lastActivity: room.lastActivity,
     player1: room.player1 ? { name: room.player1.name } : null,
     player2: room.player2 ? { name: room.player2.name } : null,
     rematchRequested: room.rematchRequested,
-    lastActivity: room.lastActivity,
-    isPublic: room.isPublic,
-    gameType: room.gameType,
+    roomId: room.id,
+    state: room.state,
     watcherCount: room.watchers?.length ?? 0,
   };
 }
@@ -193,5 +192,5 @@ export async function getPublicRooms(): Promise<GameRoom[]> {
   }
 
   // Sort by last activity (most recent first)
-  return rooms.sort((a, b) => b.lastActivity - a.lastActivity);
+  return rooms.toSorted((a, b) => b.lastActivity - a.lastActivity);
 }

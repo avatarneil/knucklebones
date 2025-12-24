@@ -6,13 +6,8 @@
 
 import { NextResponse } from "next/server";
 import { createInitialState } from "@/engine";
-import {
-  type GameRoom,
-  generatePlayerToken,
-  generateRoomCode,
-  setPlayerSession,
-  setRoom,
-} from "@/lib/kv";
+import { generatePlayerToken, generateRoomCode, setPlayerSession, setRoom } from "@/lib/kv";
+import type { GameRoom } from "@/lib/kv";
 
 interface CreateRoomRequest {
   playerName: string;
@@ -30,37 +25,34 @@ export async function POST(request: Request) {
 
     // Create the room
     const room: GameRoom = {
+      createdAt: Date.now(),
+      followedBy: [],
+      gameType: "multiplayer",
       id: roomId,
+      isPublic: body.isPublic ?? false,
+      lastActivity: Date.now(),
       player1: {
         token: playerToken,
         name: playerName,
       },
       player2: null,
-      state: createInitialState(),
       rematchRequested: null,
-      createdAt: Date.now(),
-      lastActivity: Date.now(),
-      isPublic: body.isPublic ?? false,
-      gameType: "multiplayer",
+      state: createInitialState(),
       watchers: [],
-      followedBy: [],
     };
 
     // Save room and player session
     await setRoom(room);
-    await setPlayerSession(playerToken, { roomId, role: "player1" });
+    await setPlayerSession(playerToken, { role: "player1", roomId });
 
     return NextResponse.json({
-      success: true,
-      roomId,
       playerToken,
       role: "player1",
+      roomId,
+      success: true,
     });
   } catch (error) {
     console.error("Error creating room:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to create room" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to create room", success: false }, { status: 500 });
   }
 }

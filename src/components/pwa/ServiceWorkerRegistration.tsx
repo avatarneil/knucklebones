@@ -10,8 +10,7 @@ export function ServiceWorkerRegistration() {
 
     // Register service worker in production, or if explicitly enabled in dev
     const shouldRegister =
-      process.env.NODE_ENV === "production" ||
-      process.env.NEXT_PUBLIC_ENABLE_SW === "true";
+      process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_ENABLE_SW === "true";
 
     if (!shouldRegister) {
       console.log("Service Worker registration skipped (development mode)");
@@ -30,10 +29,7 @@ export function ServiceWorkerRegistration() {
           const newWorker = registration.installing;
           if (newWorker) {
             newWorker.addEventListener("statechange", () => {
-              if (
-                newWorker.state === "installed" &&
-                navigator.serviceWorker.controller
-              ) {
+              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
                 // New content available, prompt user to refresh
                 console.log("New content available, refresh to update.");
               }
@@ -46,7 +42,7 @@ export function ServiceWorkerRegistration() {
           () => {
             registration.update();
           },
-          60 * 60 * 1000,
+          60 * 60 * 1000
         );
       })
       .catch((error) => {
@@ -54,5 +50,5 @@ export function ServiceWorkerRegistration() {
       });
   }, []);
 
-  return null;
+  return;
 }

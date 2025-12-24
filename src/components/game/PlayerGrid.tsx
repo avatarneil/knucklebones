@@ -20,7 +20,7 @@ interface PlayerGridProps {
   highlightedColumn?: ColumnIndex | null;
   newDieColumn?: ColumnIndex | null;
   newDieRow?: number | null;
-  removingDice?: Array<{ column: ColumnIndex; indices: number[] }>;
+  removingDice?: { column: ColumnIndex; indices: number[] }[];
   isThinking?: boolean;
 }
 
@@ -43,7 +43,9 @@ export function PlayerGrid({
   const score = calculateGridScore(grid);
 
   const getWinProbability = (column: ColumnIndex): number | undefined => {
-    if (!moveAnalysis) return undefined;
+    if (!moveAnalysis) {
+      return undefined;
+    }
     const analysis = moveAnalysis.find((m) => m.column === column);
     return analysis?.winProbability;
   };
@@ -57,7 +59,7 @@ export function PlayerGrid({
     <div
       className={cn(
         "flex flex-col items-center gap-[clamp(0.25rem,1.5vmin,1rem)] p-[clamp(0.5rem,2vmin,1.25rem)] rounded-xl sm:rounded-2xl transition-all duration-300",
-        isCurrentPlayer && !isOpponent && "ring-2 ring-accent/50 bg-accent/5",
+        isCurrentPlayer && !isOpponent && "ring-2 ring-accent/50 bg-accent/5"
       )}
     >
       {/* Player info */}
@@ -65,19 +67,15 @@ export function PlayerGrid({
         <div
           className={cn(
             "w-[clamp(0.5rem,1.5vw,0.75rem)] h-[clamp(0.5rem,1.5vw,0.75rem)] rounded-full transition-all",
-            isCurrentPlayer
-              ? "bg-accent animate-pulse"
-              : "bg-muted-foreground/30",
+            isCurrentPlayer ? "bg-accent animate-pulse" : "bg-muted-foreground/30"
           )}
         />
-        <span className="font-semibold text-[clamp(0.875rem,2.5vw,1.125rem)]">
-          {playerName}
-        </span>
+        <span className="font-semibold text-[clamp(0.875rem,2.5vw,1.125rem)]">{playerName}</span>
         {isThinking && <Loader2 className="w-4 h-4 animate-spin text-accent" />}
         <div
           className={cn(
             "font-mono font-bold text-[clamp(1.125rem,3.5vw,1.5rem)] tabular-nums transition-all",
-            isCurrentPlayer ? "text-accent" : "text-foreground",
+            isCurrentPlayer ? "text-accent" : "text-foreground"
           )}
         >
           {score.total}
@@ -87,7 +85,7 @@ export function PlayerGrid({
       {/* Grid */}
       <div
         className={cn(
-          "flex gap-[clamp(0.375rem,2vmin,1.25rem)] p-[clamp(0.5rem,2.5vmin,1.25rem)] rounded-lg sm:rounded-xl bg-card/50 backdrop-blur border border-border/50",
+          "flex gap-[clamp(0.375rem,2vmin,1.25rem)] p-[clamp(0.5rem,2.5vmin,1.25rem)] rounded-lg sm:rounded-xl bg-card/50 backdrop-blur border border-border/50"
         )}
       >
         {ALL_COLUMNS.map((colIndex) => (
@@ -100,12 +98,8 @@ export function PlayerGrid({
             onClick={() => onColumnClick?.(colIndex)}
             isOpponent={isOpponent}
             winProbability={getWinProbability(colIndex)}
-            showProbability={
-              showProbabilities && legalColumns.includes(colIndex)
-            }
-            newDieIndex={
-              newDieColumn === colIndex ? (newDieRow ?? undefined) : undefined
-            }
+            showProbability={showProbabilities && legalColumns.includes(colIndex)}
+            newDieIndex={newDieColumn === colIndex ? (newDieRow ?? undefined) : undefined}
             removingIndices={getRemovingIndices(colIndex)}
           />
         ))}
@@ -117,9 +111,7 @@ export function PlayerGrid({
           <div key={`col-score-${col.column}`} className="text-center">
             <span className="font-mono">{col.total}</span>
             {col.multiplier > 1 && (
-              <span className="text-accent ml-1">
-                ×{col.multiplier.toFixed(0)}
-              </span>
+              <span className="text-accent ml-1">×{col.multiplier.toFixed(0)}</span>
             )}
           </div>
         ))}

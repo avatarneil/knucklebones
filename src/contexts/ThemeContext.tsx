@@ -16,9 +16,13 @@ const THEME_STORAGE_KEY = "knuckletrainer-theme";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemeId>(() => {
-    if (typeof window === "undefined") return "cult-of-the-lamb";
+    if (typeof window === "undefined") {
+      return "cult-of-the-lamb";
+    }
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    if (!stored) return "cult-of-the-lamb";
+    if (!stored) {
+      return "cult-of-the-lamb";
+    }
     // Migrate old "default" theme to "legacy"
     if (stored === "default") {
       localStorage.setItem(THEME_STORAGE_KEY, "legacy");
@@ -39,11 +43,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyTheme(theme);
   }, [theme]);
 
-  return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={{ setTheme, theme }}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {
@@ -55,7 +55,9 @@ export function useTheme() {
 }
 
 function applyTheme(themeId: ThemeId) {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined") {
+    return;
+  }
 
   const theme = themes[themeId];
   const root = document.documentElement;
@@ -70,20 +72,11 @@ function applyTheme(themeId: ThemeId) {
   root.style.setProperty("--accent", theme.colors.accent);
   root.style.setProperty("--accent-foreground", theme.colors.accentForeground);
   root.style.setProperty("--primary", theme.colors.primary);
-  root.style.setProperty(
-    "--primary-foreground",
-    theme.colors.primaryForeground,
-  );
+  root.style.setProperty("--primary-foreground", theme.colors.primaryForeground);
   root.style.setProperty("--secondary", theme.colors.secondary);
-  root.style.setProperty(
-    "--secondary-foreground",
-    theme.colors.secondaryForeground,
-  );
+  root.style.setProperty("--secondary-foreground", theme.colors.secondaryForeground);
   root.style.setProperty("--destructive", theme.colors.destructive);
-  root.style.setProperty(
-    "--destructive-foreground",
-    theme.colors.destructiveForeground,
-  );
+  root.style.setProperty("--destructive-foreground", theme.colors.destructiveForeground);
   root.style.setProperty("--border", theme.colors.border);
   root.style.setProperty("--input", theme.colors.input);
   root.style.setProperty("--ring", theme.colors.ring);

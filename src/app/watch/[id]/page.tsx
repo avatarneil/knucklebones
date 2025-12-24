@@ -1,18 +1,9 @@
 "use client";
 
-import {
-  ArrowLeft,
-  Eye,
-  Heart,
-  Loader2,
-  LogOut,
-  Users,
-  Wifi,
-  WifiOff,
-} from "lucide-react";
+import { ArrowLeft, Eye, Heart, Loader2, Wifi, WifiOff } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { GameBoard } from "@/components/game";
 import { InstallPrompt } from "@/components/pwa";
 import { Button } from "@/components/ui/button";
@@ -32,11 +23,11 @@ interface RoomState {
 export default function WatchRoomPage() {
   const params = useParams();
   const roomId = params.id as string;
-  const [roomState, setRoomState] = useState<RoomState | null>(null);
+  const [roomState, setRoomState] = useState<RoomState | null>(undefined);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(undefined);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [watcherToken, setWatcherToken] = useState<string | null>(null);
+  const [watcherToken, setWatcherToken] = useState<string | null>(undefined);
   const isOnline = useOnlineStatus();
 
   // Get or create watcher token
@@ -53,7 +44,7 @@ export default function WatchRoomPage() {
     }
   }, [roomId]);
 
-  const fetchRoomState = async () => {
+  const fetchRoomState = useCallback(async () => {
     if (!isOnline || !roomId) {
       setError("Requires internet connection");
       setLoading(false);
@@ -61,17 +52,17 @@ export default function WatchRoomPage() {
     }
 
     try {
-      setError(null);
+      setError(undefined);
       const response = await fetch(`/api/rooms/${roomId}/state`);
       const data = await response.json();
 
       if (data.success) {
         setRoomState({
-          roomId: data.roomId,
-          state: data.state,
+          gameType: data.gameType,
           player1: data.player1,
           player2: data.player2,
-          gameType: data.gameType,
+          roomId: data.roomId,
+          state: data.state,
           watcherCount: data.watcherCount ?? 0,
         });
 
@@ -84,39 +75,38 @@ export default function WatchRoomPage() {
       } else {
         setError(data.error || "Room not found");
       }
-    } catch (err) {
-      console.error("Error fetching room state:", err);
+    } catch (error) {
+      console.error("Error fetching room state:", error);
       setError("Failed to load room");
     } finally {
       setLoading(false);
     }
-  };
+  }, [isOnline, roomId]);
 
   const handleFollow = async () => {
-    if (!watcherToken || !roomId) return;
+    if (!watcherToken || !roomId) {
+      return;
+    }
 
     try {
       const response = await fetch(`/api/rooms/${roomId}/follow`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: isFollowing ? "unfollow" : "follow",
           watcherToken,
         }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
       });
 
       const data = await response.json();
       if (data.success) {
         setIsFollowing(!isFollowing);
         if (typeof window !== "undefined") {
-          localStorage.setItem(
-            `following_${roomId}`,
-            (!isFollowing).toString(),
-          );
+          localStorage.setItem(`following_${roomId}`, (!isFollowing).toString());
         }
       }
-    } catch (err) {
-      console.error("Error following room:", err);
+    } catch (error) {
+      console.error("Error following room:", error);
     }
   };
 
@@ -125,11 +115,13 @@ export default function WatchRoomPage() {
     // Poll every second for updates
     const interval = setInterval(fetchRoomState, 1000);
     return () => clearInterval(interval);
-  }, [roomId, isOnline]);
+  }, [fetchRoomState]);
 
   // Check for new room if following (when game ends)
   useEffect(() => {
-    if (!isFollowing || !roomState || roomState.state.phase !== "ended") return;
+    if (!isFollowing || !roomState || roomState.state.phase !== "ended") {
+      return;
+    }
 
     // When game ends and we're following, check for a new room after a delay
     // In a full implementation, you'd poll for new rooms from the same player
@@ -189,9 +181,7 @@ export default function WatchRoomPage() {
             className="flex items-center gap-1"
           >
             <Heart className={`w-4 h-4 ${isFollowing ? "fill-current" : ""}`} />
-            <span className="hidden sm:inline">
-              {isFollowing ? "Following" : "Follow"}
-            </span>
+            <span className="hidden sm:inline">{isFollowing ? "Following" : "Follow"}</span>
           </Button>
           <div className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
             <Eye className="w-4 h-4" />
@@ -230,9 +220,7 @@ export default function WatchRoomPage() {
           player1Name={roomState.player1?.name ?? "Player 1"}
           player2Name={roomState.player2?.name ?? "Player 2"}
           isPlayer1Human={roomState.gameType === "multiplayer"}
-          isPlayer2Human={
-            roomState.gameType === "multiplayer" && roomState.player2 !== null
-          }
+          isPlayer2Human={roomState.gameType === "multiplayer" && roomState.player2 !== null}
         />
       </div>
     </main>

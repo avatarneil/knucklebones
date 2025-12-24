@@ -15,18 +15,14 @@ export function ThemeSwitcher() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setOpen(false);
       }
     };
 
     if (open) {
       document.addEventListener("mousedown", handleClickOutside);
-      return () =>
-        document.removeEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [open]);
 
@@ -47,7 +43,7 @@ export function ThemeSwitcher() {
         <div
           className={cn(
             "absolute right-0 top-full mt-2 z-50 min-w-[200px] rounded-lg border border-border bg-card shadow-lg",
-            "animate-in fade-in-0 zoom-in-95 slide-in-from-top-2",
+            "animate-in fade-in-0 zoom-in-95 slide-in-from-top-2"
           )}
         >
           <div className="p-1">
@@ -61,14 +57,12 @@ export function ThemeSwitcher() {
                 className={cn(
                   "w-full text-left rounded-md px-2 py-1.5 text-sm transition-colors",
                   "hover:bg-muted focus:bg-muted focus:outline-none",
-                  theme === t.id && "bg-muted font-medium",
+                  theme === t.id && "bg-muted font-medium"
                 )}
               >
                 <div className="flex flex-col items-start">
                   <span className="font-medium">{t.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {t.description}
-                  </span>
+                  <span className="text-xs text-muted-foreground">{t.description}</span>
                 </div>
               </button>
             ))}

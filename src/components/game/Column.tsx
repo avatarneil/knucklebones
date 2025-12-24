@@ -33,7 +33,7 @@ export function Column({
   const score = calculateColumnScore(column, columnIndex);
 
   // For opponent, reverse the visual order (their row 0 is at bottom from our view)
-  const displayColumn = isOpponent ? [...column].reverse() : column;
+  const displayColumn = isOpponent ? [...column].toReversed() : column;
   const displayIndices = isOpponent ? [2, 1, 0] : [0, 1, 2];
 
   return (
@@ -45,14 +45,14 @@ export function Column({
         "flex flex-col gap-[clamp(0.375rem,1.5vmin,1rem)] p-[clamp(0.375rem,2vmin,1rem)] rounded-lg sm:rounded-xl transition-all duration-200",
         isClickable && "cursor-pointer hover:bg-muted/50 hover:scale-105",
         isHighlighted && "ring-2 ring-accent animate-pulse-glow",
-        !isClickable && "cursor-default",
+        !isClickable && "cursor-default"
       )}
     >
       {/* Column score */}
       <div
         className={cn(
           "text-center font-mono font-bold text-[clamp(0.875rem,2.5vw,1.125rem)] transition-all",
-          score.total > 0 ? "text-accent" : "text-muted-foreground",
+          score.total > 0 ? "text-accent" : "text-muted-foreground"
         )}
       >
         {score.total}
@@ -83,7 +83,7 @@ export function Column({
               ? "bg-green-500/20 text-green-400"
               : winProbability > 0.3
                 ? "bg-yellow-500/20 text-yellow-400"
-                : "bg-red-500/20 text-red-400",
+                : "bg-red-500/20 text-red-400"
           )}
         >
           {(winProbability * 100).toFixed(0)}%

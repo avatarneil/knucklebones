@@ -20,13 +20,7 @@ import { GameBoard } from "@/components/game";
 import { InstallPrompt } from "@/components/pwa";
 import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -52,11 +46,12 @@ export default function MultiplayerPage() {
   const [isPublic, setIsPublic] = useState(false);
 
   const multiplayer = useMultiplayer();
+  const { connect } = multiplayer;
 
   // Connect on mount
   useEffect(() => {
-    multiplayer.connect();
-  }, [multiplayer.connect]);
+    connect();
+  }, [connect]);
 
   // Handle game state changes
   useEffect(() => {
@@ -67,40 +62,33 @@ export default function MultiplayerPage() {
 
   // Update lobby state based on multiplayer state
   useEffect(() => {
-    if (
-      multiplayer.roomId &&
-      !multiplayer.isWaitingForOpponent &&
-      multiplayer.gameState
-    ) {
+    if (multiplayer.roomId && !multiplayer.isWaitingForOpponent && multiplayer.gameState) {
       setLobbyState("playing");
     } else if (multiplayer.roomId && multiplayer.isWaitingForOpponent) {
       setLobbyState("waiting");
     }
-  }, [
-    multiplayer.roomId,
-    multiplayer.isWaitingForOpponent,
-    multiplayer.gameState,
-  ]);
+  }, [multiplayer.roomId, multiplayer.isWaitingForOpponent, multiplayer.gameState]);
 
   const handleCreateRoom = async () => {
-    if (!playerName.trim()) return;
+    if (!playerName.trim()) {
+      return;
+    }
     setLobbyState("creating");
     try {
       await multiplayer.createRoom(playerName, isPublic);
       setLobbyState("waiting");
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
       setLobbyState("menu");
     }
   };
 
   const handleJoinRoom = async () => {
-    if (!playerName.trim() || !joinCode.trim()) return;
+    if (!playerName.trim() || !joinCode.trim()) {
+      return;
+    }
     setLobbyState("joining");
-    const success = await multiplayer.joinRoom(
-      joinCode.toUpperCase(),
-      playerName,
-    );
+    const success = await multiplayer.joinRoom(joinCode.toUpperCase(), playerName);
     if (!success) {
       setLobbyState("menu");
     }
@@ -115,8 +103,9 @@ export default function MultiplayerPage() {
   };
 
   const handleRoll = useCallback(async () => {
-    if (!multiplayer.isMyTurn || multiplayer.gameState?.phase !== "rolling")
+    if (!multiplayer.isMyTurn || multiplayer.gameState?.phase !== "rolling") {
       return;
+    }
     setIsRolling(true);
     await multiplayer.rollDice();
     setTimeout(() => setIsRolling(false), 500);
@@ -124,11 +113,12 @@ export default function MultiplayerPage() {
 
   const handlePlaceDie = useCallback(
     async (column: 0 | 1 | 2) => {
-      if (!multiplayer.isMyTurn || multiplayer.gameState?.phase !== "placing")
+      if (!multiplayer.isMyTurn || multiplayer.gameState?.phase !== "placing") {
         return;
+      }
       await multiplayer.placeDie(column);
     },
-    [multiplayer],
+    [multiplayer]
   );
 
   const handleLeaveRoom = () => {
@@ -177,12 +167,8 @@ export default function MultiplayerPage() {
         </div>
 
         <div className="text-center mb-4 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">
-            Multiplayer
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Play against a friend online
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">Multiplayer</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Play against a friend online</p>
         </div>
 
         <div className="w-full max-w-md space-y-4 sm:space-y-6">
@@ -204,9 +190,7 @@ export default function MultiplayerPage() {
             {/* Create room */}
             <Card>
               <CardHeader className="pb-2 sm:pb-3 pt-4 sm:pt-6">
-                <CardTitle className="text-base sm:text-lg">
-                  Create Room
-                </CardTitle>
+                <CardTitle className="text-base sm:text-lg">Create Room</CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
                   Start a new game and invite a friend
                 </CardDescription>
@@ -221,24 +205,15 @@ export default function MultiplayerPage() {
                       <EyeOff className="w-4 h-4 text-muted-foreground" />
                     )}
                     <div className="flex flex-col">
-                      <Label
-                        htmlFor="public-room"
-                        className="text-sm font-medium cursor-pointer"
-                      >
+                      <Label htmlFor="public-room" className="text-sm font-medium cursor-pointer">
                         {isPublic ? "Public Room" : "Private Room"}
                       </Label>
                       <span className="text-xs text-muted-foreground">
-                        {isPublic
-                          ? "Anyone can watch this match"
-                          : "Only players can access"}
+                        {isPublic ? "Anyone can watch this match" : "Only players can access"}
                       </span>
                     </div>
                   </div>
-                  <Switch
-                    id="public-room"
-                    checked={isPublic}
-                    onCheckedChange={setIsPublic}
-                  />
+                  <Switch id="public-room" checked={isPublic} onCheckedChange={setIsPublic} />
                 </div>
                 <Button
                   onClick={handleCreateRoom}
@@ -255,9 +230,7 @@ export default function MultiplayerPage() {
             {/* Join room */}
             <Card>
               <CardHeader className="pb-2 sm:pb-3 pt-4 sm:pt-6">
-                <CardTitle className="text-base sm:text-lg">
-                  Join Room
-                </CardTitle>
+                <CardTitle className="text-base sm:text-lg">Join Room</CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
                   Enter a room code to join a game
                 </CardDescription>
@@ -272,11 +245,7 @@ export default function MultiplayerPage() {
                 />
                 <Button
                   onClick={handleJoinRoom}
-                  disabled={
-                    !playerName.trim() ||
-                    joinCode.length < 4 ||
-                    !multiplayer.isConnected
-                  }
+                  disabled={!playerName.trim() || joinCode.length < 4 || !multiplayer.isConnected}
                   className="w-full"
                   variant="secondary"
                   size="default"
@@ -288,9 +257,7 @@ export default function MultiplayerPage() {
           </div>
 
           {multiplayer.error && (
-            <p className="text-center text-sm text-destructive">
-              {multiplayer.error}
-            </p>
+            <p className="text-center text-sm text-destructive">{multiplayer.error}</p>
           )}
         </div>
       </main>
@@ -303,9 +270,7 @@ export default function MultiplayerPage() {
         <InstallPrompt />
         <Card className="w-full max-w-md">
           <CardHeader className="text-center py-4 sm:py-6">
-            <CardTitle className="text-lg sm:text-xl">
-              Waiting for Opponent
-            </CardTitle>
+            <CardTitle className="text-lg sm:text-xl">Waiting for Opponent</CardTitle>
             <CardDescription className="text-xs sm:text-sm">
               Share this code with a friend to start the game
             </CardDescription>
@@ -335,12 +300,7 @@ export default function MultiplayerPage() {
               <span>Waiting for player to join...</span>
             </div>
 
-            <Button
-              variant="outline"
-              className="w-full"
-              size="default"
-              onClick={handleLeaveRoom}
-            >
+            <Button variant="outline" className="w-full" size="default" onClick={handleLeaveRoom}>
               <LogOut className="mr-2 h-4 w-4" />
               Leave Room
             </Button>
@@ -375,12 +335,7 @@ export default function MultiplayerPage() {
       <InstallPrompt />
       {/* Header */}
       <header className="flex items-center justify-between mb-2 sm:mb-4 flex-shrink-0">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="px-2 sm:px-3"
-          onClick={handleLeaveRoom}
-        >
+        <Button variant="ghost" size="sm" className="px-2 sm:px-3" onClick={handleLeaveRoom}>
           <LogOut className="h-4 w-4" />
           <span className="hidden sm:inline ml-2">Leave</span>
         </Button>
@@ -432,13 +387,11 @@ export default function MultiplayerPage() {
 
       {/* Rematch requested notice */}
       {multiplayer.rematchRequested && (
-        <Dialog open={true} onOpenChange={() => {}}>
+        <Dialog open onOpenChange={() => {}}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Rematch Requested</DialogTitle>
-              <DialogDescription>
-                Your opponent wants to play again!
-              </DialogDescription>
+              <DialogDescription>Your opponent wants to play again!</DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={handleLeaveRoom}>
@@ -454,10 +407,7 @@ export default function MultiplayerPage() {
       )}
 
       {/* Game Over Dialog */}
-      <Dialog
-        open={showGameOver && !multiplayer.rematchRequested}
-        onOpenChange={setShowGameOver}
-      >
+      <Dialog open={showGameOver && !multiplayer.rematchRequested} onOpenChange={setShowGameOver}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">

@@ -17,19 +17,20 @@ interface UseTrainingReturn {
 
 export function useTraining(initialEnabled = false): UseTrainingReturn {
   const [isEnabled, setIsEnabled] = useState(initialEnabled);
-  const [analysis, setAnalysis] = useState<MoveAnalysis[] | null>(null);
+  const [analysis, setAnalysis] = useState<MoveAnalysis[] | null>(undefined);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const analysisWorkerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cleanup on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (analysisWorkerRef.current) {
         clearTimeout(analysisWorkerRef.current);
       }
-    };
-  }, []);
+    },
+    []
+  );
 
   const toggle = useCallback(() => {
     setIsEnabled((prev) => !prev);
@@ -41,12 +42,14 @@ export function useTraining(initialEnabled = false): UseTrainingReturn {
 
   const disable = useCallback(() => {
     setIsEnabled(false);
-    setAnalysis(null);
+    setAnalysis(undefined);
   }, []);
 
   const runAnalysis = useCallback(
     (state: GameState, deep = false) => {
-      if (!isEnabled) return;
+      if (!isEnabled) {
+        return;
+      }
 
       // Cancel any pending analysis
       if (analysisWorkerRef.current) {
@@ -54,7 +57,7 @@ export function useTraining(initialEnabled = false): UseTrainingReturn {
       }
 
       if (state.phase !== "placing") {
-        setAnalysis(null);
+        setAnalysis(undefined);
         return;
       }
 
@@ -62,32 +65,30 @@ export function useTraining(initialEnabled = false): UseTrainingReturn {
 
       // Run analysis in next tick to not block UI
       analysisWorkerRef.current = setTimeout(() => {
-        const result = deep
-          ? deepAnalysis(state, 1500)
-          : quickAnalysis(state, 400);
+        const result = deep ? deepAnalysis(state, 1500) : quickAnalysis(state, 400);
 
         setAnalysis(result.moves);
         setIsAnalyzing(false);
       }, 0);
     },
-    [isEnabled],
+    [isEnabled]
   );
 
   const clearAnalysis = useCallback(() => {
-    setAnalysis(null);
+    setAnalysis(undefined);
     if (analysisWorkerRef.current) {
       clearTimeout(analysisWorkerRef.current);
     }
   }, []);
 
   return {
-    isEnabled,
-    toggle,
-    enable,
-    disable,
     analysis,
-    isAnalyzing,
-    runAnalysis,
     clearAnalysis,
+    disable,
+    enable,
+    isAnalyzing,
+    isEnabled,
+    runAnalysis,
+    toggle,
   };
 }

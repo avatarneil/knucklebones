@@ -33,12 +33,11 @@ export interface EvaluationResult {
 /**
  * Count potential combos in a column
  */
-function countColumnComboPotential(
-  column: (DieValue | null)[],
-  emptySlots: number,
-): number {
+function countColumnComboPotential(column: (DieValue | null)[], emptySlots: number): number {
   const dice = column.filter((d): d is DieValue => d !== null);
-  if (dice.length === 0) return 0;
+  if (dice.length === 0) {
+    return 0;
+  }
 
   // Count matching dice
   const counts = new Map<DieValue, number>();
@@ -66,12 +65,14 @@ function countColumnComboPotential(
  */
 function evaluateColumnVulnerability(
   column: (DieValue | null)[],
-  opponentColumn: (DieValue | null)[],
+  opponentColumn: (DieValue | null)[]
 ): number {
   const myDice = column.filter((d): d is DieValue => d !== null);
   const opponentEmpty = opponentColumn.filter((d) => d === null).length;
 
-  if (opponentEmpty === 0) return 0; // Opponent can't attack this column
+  if (opponentEmpty === 0) {
+    return 0;
+  } // Opponent can't attack this column
 
   let vulnerability = 0;
   for (const die of myDice) {
@@ -87,12 +88,10 @@ function evaluateColumnVulnerability(
  */
 function evaluateColumnControl(
   column: (DieValue | null)[],
-  opponentColumn: (DieValue | null)[],
+  opponentColumn: (DieValue | null)[]
 ): number {
   const myDice = column.filter((d): d is DieValue => d !== null);
-  const opponentDice = new Set(
-    opponentColumn.filter((d): d is DieValue => d !== null),
-  );
+  const opponentDice = new Set(opponentColumn.filter((d): d is DieValue => d !== null));
 
   let control = 0;
   for (const die of myDice) {
@@ -120,7 +119,7 @@ export function evaluateBasic(state: GameState, player: Player): number {
 export function evaluateAdvanced(
   state: GameState,
   player: Player,
-  config: DifficultyConfig,
+  config: DifficultyConfig
 ): EvaluationResult {
   const opponent = getOpponent(player);
   const myGrid = state.grids[player];
@@ -159,9 +158,7 @@ export function evaluateAdvanced(
         if (potentialDamage > 0) {
           // Weighted by probability (1/6) and game phase
           positionalScore +=
-            (potentialDamage / 6) *
-            (1 - gameProgress * 0.3) *
-            config.offenseWeight;
+            (potentialDamage / 6) * (1 - gameProgress * 0.3) * config.offenseWeight;
         }
       }
     }
@@ -171,40 +168,35 @@ export function evaluateAdvanced(
   if (state.phase === "ended") {
     if (state.winner === player) {
       return {
-        score: 10000,
-        ownScore,
         opponentScore,
+        ownScore,
         positionalScore: 0,
+        score: 10000,
       };
     } else if (state.winner === getOpponent(player)) {
       return {
-        score: -10000,
-        ownScore,
         opponentScore,
+        ownScore,
         positionalScore: 0,
+        score: -10000,
       };
     }
   }
 
-  const score =
-    (ownScore - opponentScore) * config.offenseWeight + positionalScore;
+  const score = (ownScore - opponentScore) * config.offenseWeight + positionalScore;
 
   return {
-    score,
-    ownScore,
     opponentScore,
+    ownScore,
     positionalScore,
+    score,
   };
 }
 
 /**
  * Evaluate a state based on difficulty config
  */
-export function evaluate(
-  state: GameState,
-  player: Player,
-  config: DifficultyConfig,
-): number {
+export function evaluate(state: GameState, player: Player, config: DifficultyConfig): number {
   if (config.advancedEval) {
     return evaluateAdvanced(state, player, config).score;
   }
@@ -219,23 +211,15 @@ export function evaluateMoveQuick(
   state: GameState,
   column: ColumnIndex,
   dieValue: DieValue,
-  player: Player,
+  player: Player
 ): number {
   const opponent = getOpponent(player);
 
   // Score gain from placing
-  const scoreGain = calculateMoveScoreGain(
-    state.grids[player],
-    column,
-    dieValue,
-  );
+  const scoreGain = calculateMoveScoreGain(state.grids[player], column, dieValue);
 
   // Opponent score loss from removing their dice
-  const opponentLoss = calculateOpponentScoreLoss(
-    state.grids[opponent],
-    column,
-    dieValue,
-  );
+  const opponentLoss = calculateOpponentScoreLoss(state.grids[opponent], column, dieValue);
 
   return scoreGain + opponentLoss;
 }
@@ -245,24 +229,23 @@ export function evaluateMoveQuick(
  */
 export function getGreedyMove(state: GameState): ColumnIndex | null {
   if (state.phase !== "placing" || state.currentDie === null) {
-    return null;
+    return;
   }
 
   const grid = state.grids[state.currentPlayer];
   const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(grid[i]));
 
-  if (legalColumns.length === 0) return null;
-  if (legalColumns.length === 1) return legalColumns[0];
+  if (legalColumns.length === 0) {
+    return null;
+  }
+  if (legalColumns.length === 1) {
+    return legalColumns[0];
+  }
 
   // Score each legal move and pick the best
   const scored = legalColumns.map((col) => ({
     col,
-    score: evaluateMoveQuick(
-      state,
-      col,
-      state.currentDie!,
-      state.currentPlayer,
-    ),
+    score: evaluateMoveQuick(state, col, state.currentDie!, state.currentPlayer),
   }));
 
   scored.sort((a, b) => b.score - a.score);

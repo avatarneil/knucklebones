@@ -37,7 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { createInitialState, DIFFICULTY_CONFIGS } from "@/engine";
+import { DIFFICULTY_CONFIGS, createInitialState } from "@/engine";
 import { isColumnFull } from "@/engine/scorer";
 import type { ColumnIndex, DifficultyLevel, GameState } from "@/engine/types";
 import { ALL_COLUMNS } from "@/engine/types";
@@ -48,8 +48,7 @@ import { gameStorage } from "@/lib/game-storage";
 
 function PlayContent() {
   const searchParams = useSearchParams();
-  const initialDifficulty =
-    (searchParams.get("difficulty") as DifficultyLevel) || "medium";
+  const initialDifficulty = (searchParams.get("difficulty") as DifficultyLevel) || "medium";
   const initialTraining = searchParams.get("training") === "true";
 
   const [showSettings, setShowSettings] = useState(false);
@@ -57,10 +56,8 @@ function PlayContent() {
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [showClearHistoryDialog, setShowClearHistoryDialog] = useState(false);
   const [pendingSavedSession, setPendingSavedSession] =
-    useState<ReturnType<typeof gameStorage.loadSession>>(null);
-  const [lastWinner, setLastWinner] = useState<
-    "player1" | "player2" | "draw" | null
-  >(null);
+    useState<ReturnType<typeof gameStorage.loadSession>>(undefined);
+  const [lastWinner, setLastWinner] = useState<"player1" | "player2" | "draw" | null>(undefined);
   const [isPublicMatch, setIsPublicMatch] = useState(false);
   const publicRoomIdRef = useRef<string | null>(null);
 
@@ -74,29 +71,26 @@ function PlayContent() {
   const latestStateRef = useRef<GameState | null>(null);
 
   // Game state - may be initialized from saved session
-  const [gameInitialState, setGameInitialState] = useState<
-    GameState | undefined
-  >(undefined);
-  const [gameDifficulty, setGameDifficulty] =
-    useState<DifficultyLevel>(initialDifficulty);
+  const [gameInitialState, setGameInitialState] = useState<GameState | undefined>(undefined);
+  const [gameDifficulty, setGameDifficulty] = useState<DifficultyLevel>(initialDifficulty);
   const [gameTrainingMode, setGameTrainingMode] = useState(initialTraining);
   const [isReady, setIsReady] = useState(false);
   // Key to force remount of game hook when starting fresh or resuming
-  const [gameKey, setGameKey] = useState(0);
+  const [_gameKey, setGameKey] = useState(0);
 
   // Get followers from previous room
   const getPreviousRoomFollowers = useCallback(async (): Promise<string[]> => {
-    if (!publicRoomIdRef.current) return [];
+    if (!publicRoomIdRef.current) {
+      return [];
+    }
     try {
-      const response = await fetch(
-        `/api/rooms/${publicRoomIdRef.current}/state`,
-      );
+      const response = await fetch(`/api/rooms/${publicRoomIdRef.current}/state`);
       const data = await response.json();
       if (data.success && data.followedBy) {
         return data.followedBy;
       }
-    } catch (err) {
-      console.error("Error getting previous room followers:", err);
+    } catch (error) {
+      console.error("Error getting previous room followers:", error);
     }
     return [];
   }, []);
@@ -104,18 +98,20 @@ function PlayContent() {
   // Create or update public room
   const updatePublicRoom = useCallback(
     async (state: GameState) => {
-      if (!isPublicMatch) return;
+      if (!isPublicMatch) {
+        return;
+      }
 
       try {
         if (publicRoomIdRef.current) {
           // Update existing room
           await fetch("/api/rooms/update-ai", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               roomId: publicRoomIdRef.current,
               state,
             }),
+            headers: { "Content-Type": "application/json" },
+            method: "POST",
           });
         } else {
           // Get followers from previous room if it exists
@@ -123,14 +119,14 @@ function PlayContent() {
 
           // Create new room
           const response = await fetch("/api/rooms/create-ai", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               playerName: "You",
               difficulty: gameDifficulty,
               initialState: state,
               followedBy, // Migrate followers
             }),
+            headers: { "Content-Type": "application/json" },
+            method: "POST",
           });
           const data = await response.json();
           if (data.success) {
@@ -140,44 +136,40 @@ function PlayContent() {
             // For now, followers will need to poll or check the watch page
           }
         }
-      } catch (err) {
-        console.error("Error updating public room:", err);
+      } catch (error) {
+        console.error("Error updating public room:", error);
       }
     },
-    [isPublicMatch, gameDifficulty, getPreviousRoomFollowers],
+    [isPublicMatch, gameDifficulty, getPreviousRoomFollowers]
   );
 
   const startNewSession = useCallback(async () => {
     const newState = createInitialState();
     const sessionId = gameHistory.startSession({
-      mode: "ai",
       difficulty: gameDifficulty,
-      trainingMode: gameTrainingMode,
       initialState: newState,
+      mode: "ai",
+      trainingMode: gameTrainingMode,
     });
     sessionIdRef.current = sessionId;
     latestStateRef.current = newState;
 
     // If public match is enabled, create a new room
     if (isPublicMatch) {
-      publicRoomIdRef.current = null; // Reset to create new room
+      publicRoomIdRef.current = undefined; // Reset to create new room
       await updatePublicRoom(newState);
     }
 
     setGameInitialState(newState);
     setGameKey((k) => k + 1); // Force remount of game hook
     setIsReady(true);
-  }, [
-    gameHistory,
-    gameDifficulty,
-    gameTrainingMode,
-    isPublicMatch,
-    updatePublicRoom,
-  ]);
+  }, [gameHistory, gameDifficulty, gameTrainingMode, isPublicMatch, updatePublicRoom]);
 
   // Check for saved game on mount - directly check storage to avoid race condition
   useEffect(() => {
-    if (hasCheckedResume.current) return;
+    if (hasCheckedResume.current) {
+      return;
+    }
     hasCheckedResume.current = true;
 
     // Directly check storage instead of relying on state (which loads async)
@@ -203,14 +195,14 @@ function PlayContent() {
       setGameKey((k) => k + 1); // Force remount of game hook
     }
     setShowResumeDialog(false);
-    setPendingSavedSession(null);
+    setPendingSavedSession(undefined);
     setIsReady(true);
   }, [pendingSavedSession]);
 
   const handleDiscardAndNew = useCallback(() => {
     gameHistory.discardGame();
     setShowResumeDialog(false);
-    setPendingSavedSession(null);
+    setPendingSavedSession(undefined);
     startNewSession();
   }, [gameHistory, startNewSession]);
 
@@ -225,7 +217,7 @@ function PlayContent() {
       // Update public room if enabled
       updatePublicRoom(state);
     },
-    [gameHistory, updatePublicRoom],
+    [gameHistory, updatePublicRoom]
   );
 
   const handleGameEnd = useCallback(
@@ -235,23 +227,19 @@ function PlayContent() {
 
       // Record to history using the latest state ref
       if (sessionIdRef.current && latestStateRef.current) {
-        gameHistory.recordGameEnd(
-          sessionIdRef.current,
-          latestStateRef.current,
-          winner,
-        );
+        gameHistory.recordGameEnd(sessionIdRef.current, latestStateRef.current, winner);
       }
     },
-    [gameHistory],
+    [gameHistory]
   );
 
   const game = useGame({
-    mode: "ai",
     difficulty: gameDifficulty,
-    trainingMode: gameTrainingMode,
     initialState: gameInitialState,
+    mode: "ai",
     onGameEnd: handleGameEnd,
     onStateChange: handleStateChange,
+    trainingMode: gameTrainingMode,
   });
 
   // Calculate legal columns and game state for keyboard controls
@@ -266,13 +254,13 @@ function PlayContent() {
 
   // Set up keyboard controls
   useKeyboardControls({
-    gameState: game.state,
-    canRoll,
     canPlace,
-    legalColumns,
-    onRoll: game.roll,
-    onPlaceDie: game.placeDie,
+    canRoll,
     enabled: isReady,
+    gameState: game.state,
+    legalColumns,
+    onPlaceDie: game.placeDie,
+    onRoll: game.roll,
   });
 
   const handleNewGame = useCallback(async () => {
@@ -284,21 +272,21 @@ function PlayContent() {
     // Reset game
     game.resetGame();
     setShowGameOver(false);
-    setLastWinner(null);
+    setLastWinner(undefined);
 
     // Start new session
     const newState = createInitialState();
     const sessionId = gameHistory.startSession({
-      mode: "ai",
       difficulty: game.difficulty,
-      trainingMode: game.isTrainingMode,
       initialState: newState,
+      mode: "ai",
+      trainingMode: game.isTrainingMode,
     });
     sessionIdRef.current = sessionId;
 
     // If public match is enabled, create a new room (followers will auto-join)
     if (isPublicMatch) {
-      publicRoomIdRef.current = null; // Reset to create new room
+      publicRoomIdRef.current = undefined; // Reset to create new room
       await updatePublicRoom(newState);
     }
   }, [game, gameHistory, isPublicMatch, updatePublicRoom]);
@@ -306,11 +294,17 @@ function PlayContent() {
   // Format time for display
   const formatTimeSince = (timestamp: number): string => {
     const seconds = Math.floor((Date.now() - timestamp) / 1000);
-    if (seconds < 60) return "just now";
+    if (seconds < 60) {
+      return "just now";
+    }
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
+    if (minutes < 60) {
+      return `${minutes}m ago`;
+    }
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
+    if (hours < 24) {
+      return `${hours}h ago`;
+    }
     const days = Math.floor(hours / 24);
     return `${days}d ago`;
   };
@@ -348,9 +342,7 @@ function PlayContent() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Turn:</span>
-                  <span className="font-medium">
-                    {pendingSavedSession.state.turnNumber}
-                  </span>
+                  <span className="font-medium">{pendingSavedSession.state.turnNumber}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Training Mode:</span>
@@ -362,11 +354,7 @@ function PlayContent() {
             )}
 
             <DialogFooter className="flex gap-2 sm:gap-2">
-              <Button
-                variant="outline"
-                onClick={handleDiscardAndNew}
-                className="flex-1"
-              >
+              <Button variant="outline" onClick={handleDiscardAndNew} className="flex-1">
                 <Trash2 className="mr-2 h-4 w-4" />
                 New Game
               </Button>
@@ -387,11 +375,7 @@ function PlayContent() {
       {/* Header */}
       <header className="flex items-center justify-between mb-[clamp(0.5rem,1.5vw,1rem)] flex-shrink-0">
         <Link href="/">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="px-[clamp(0.5rem,1.5vw,0.75rem)]"
-          >
+          <Button variant="ghost" size="sm" className="px-[clamp(0.5rem,1.5vw,0.75rem)]">
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden xs:inline ml-2">Back</span>
           </Button>
@@ -421,7 +405,7 @@ function PlayContent() {
                   await updatePublicRoom(latestStateRef.current);
                 } else {
                   // Clear room reference when toggled off
-                  publicRoomIdRef.current = null;
+                  publicRoomIdRef.current = undefined;
                 }
               }}
             />
@@ -487,7 +471,7 @@ function PlayContent() {
           onColumnClick={game.placeDie}
           player1Name="You"
           player2Name="AI"
-          isPlayer1Human={true}
+          isPlayer1Human
           isPlayer2Human={false}
           moveAnalysis={game.moveAnalysis ?? undefined}
           showProbabilities={game.isTrainingMode}
@@ -514,9 +498,7 @@ function PlayContent() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Game Settings</DialogTitle>
-            <DialogDescription>
-              Adjust difficulty and game options
-            </DialogDescription>
+            <DialogDescription>Adjust difficulty and game options</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -557,7 +539,7 @@ function PlayContent() {
                   if (checked && latestStateRef.current) {
                     await updatePublicRoom(latestStateRef.current);
                   } else {
-                    publicRoomIdRef.current = null;
+                    publicRoomIdRef.current = undefined;
                   }
                 }}
               />
@@ -589,8 +571,7 @@ function PlayContent() {
                     Clear Game History ({gameHistory.history.length} games)
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    This will permanently delete all game history and reset
-                    statistics.
+                    This will permanently delete all game history and reset statistics.
                   </p>
                 </div>
               </div>
@@ -633,10 +614,7 @@ function PlayContent() {
       </Dialog>
 
       {/* Clear History Confirmation Dialog */}
-      <Dialog
-        open={showClearHistoryDialog}
-        onOpenChange={setShowClearHistoryDialog}
-      >
+      <Dialog open={showClearHistoryDialog} onOpenChange={setShowClearHistoryDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -645,8 +623,8 @@ function PlayContent() {
             </DialogTitle>
             <DialogDescription>
               This will permanently delete all {gameHistory.history.length} game
-              {gameHistory.history.length !== 1 ? "s" : ""} from your history
-              and reset your statistics. This action cannot be undone.
+              {gameHistory.history.length !== 1 ? "s" : ""} from your history and reset your
+              statistics. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:gap-2">
