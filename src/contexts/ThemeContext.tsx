@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import type React from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import type { ThemeId } from "@/lib/themes";
 import { themes } from "@/lib/themes";
 
@@ -55,7 +56,7 @@ export function useTheme() {
 
 function applyTheme(themeId: ThemeId) {
   if (typeof window === "undefined") return;
-  
+
   const theme = themes[themeId];
   const root = document.documentElement;
 
@@ -69,7 +70,10 @@ function applyTheme(themeId: ThemeId) {
   root.style.setProperty("--accent", theme.colors.accent);
   root.style.setProperty("--accent-foreground", theme.colors.accentForeground);
   root.style.setProperty("--primary", theme.colors.primary);
-  root.style.setProperty("--primary-foreground", theme.colors.primaryForeground);
+  root.style.setProperty(
+    "--primary-foreground",
+    theme.colors.primaryForeground,
+  );
   root.style.setProperty("--secondary", theme.colors.secondary);
   root.style.setProperty(
     "--secondary-foreground",
@@ -93,9 +97,6 @@ function applyTheme(themeId: ThemeId) {
   // Update theme color meta tag for mobile browsers
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   if (themeColorMeta) {
-    themeColorMeta.setAttribute(
-      "content",
-      `hsl(${theme.colors.background})`,
-    );
+    themeColorMeta.setAttribute("content", `hsl(${theme.colors.background})`);
   }
 }

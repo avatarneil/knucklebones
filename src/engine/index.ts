@@ -23,18 +23,18 @@ export {
   clearTranspositionTable,
   createAIPlayer,
   DIFFICULTY_CONFIGS,
+  endMasterGame,
   getAIMove,
-  getGreedyMove,
   getAllDifficultyLevels,
   getDifficultyConfig,
+  getGreedyMove,
   // Master AI
   getMasterMove,
   getMasterProfileStats,
-  resetMasterProfile,
-  recordOpponentMoveForLearning,
-  endMasterGame,
   isMasterReady,
   type MasterProfileStats,
+  recordOpponentMoveForLearning,
+  resetMasterProfile,
 } from "./ai";
 // Moves
 export {
@@ -59,6 +59,14 @@ export {
   isColumnFull,
   isGridFull,
 } from "./scorer";
+// Simulation
+export {
+  runSimulation,
+  type SimulationConfig,
+  SimulationController,
+  type SimulationResult,
+  type SimulationStats,
+} from "./simulation";
 // State management
 export {
   cloneState,
@@ -83,13 +91,5 @@ export {
   quickAnalysis,
   simulateMove,
 } from "./training";
-// Simulation
-export {
-  runSimulation,
-  SimulationController,
-  type SimulationConfig,
-  type SimulationResult,
-  type SimulationStats,
-} from "./simulation";
 // Types
 export * from "./types";

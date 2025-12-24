@@ -15,7 +15,8 @@ export async function POST(
     const { id: roomId } = await params;
     const body = await request.json();
     const { action } = body; // "follow" or "unfollow"
-    const watcherToken = body.watcherToken || `watcher_${Date.now()}_${Math.random()}`;
+    const watcherToken =
+      body.watcherToken || `watcher_${Date.now()}_${Math.random()}`;
 
     // Get the room
     const room = await getRoom(roomId);

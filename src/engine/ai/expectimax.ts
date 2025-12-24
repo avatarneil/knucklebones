@@ -95,7 +95,14 @@ function maxNode(
 
   // If we're in rolling phase, this is actually a chance node
   if (state.phase === "rolling") {
-    return chanceNode(state, depth, player, playerConfig, opponentConfig, nodesExplored);
+    return chanceNode(
+      state,
+      depth,
+      player,
+      playerConfig,
+      opponentConfig,
+      nodesExplored,
+    );
   }
 
   // Get legal moves
@@ -173,7 +180,14 @@ function minNode(
 
   // If we're in rolling phase, this is a chance node
   if (state.phase === "rolling") {
-    return chanceNode(state, depth, player, playerConfig, opponentConfig, nodesExplored);
+    return chanceNode(
+      state,
+      depth,
+      player,
+      playerConfig,
+      opponentConfig,
+      nodesExplored,
+    );
   }
 
   // Get legal moves for opponent
@@ -187,31 +201,40 @@ function minNode(
   // Use opponent's config to determine their move selection
   const opponent = state.currentPlayer;
   let opponentMove: ColumnIndex | null = null;
-  
+
   // If opponent uses greedy (depth 0), use greedy move selection
   if (opponentConfig.depth === 0) {
     opponentMove = getGreedyMove(state);
-  } else if (opponentConfig.randomness > 0 && Math.random() < opponentConfig.randomness) {
+  } else if (
+    opponentConfig.randomness > 0 &&
+    Math.random() < opponentConfig.randomness
+  ) {
     // Random move based on opponent's randomness
     const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(grid[i]));
-    opponentMove = legalColumns[Math.floor(Math.random() * legalColumns.length)];
+    opponentMove =
+      legalColumns[Math.floor(Math.random() * legalColumns.length)];
   } else {
     // Opponent uses expectimax - find their best move from their perspective
     // Limit the opponent's search depth to the minimum of their config depth and remaining depth
     const opponentSearchDepth = Math.min(opponentConfig.depth, depth);
-    
+
     // Create a limited config for the opponent's search
     const limitedOpponentConfig = {
       ...opponentConfig,
       depth: opponentSearchDepth,
     };
-    
+
     // Call expectimax from opponent's perspective to find their best move
     // Swap configs: from opponent's perspective, they are the player and we are the opponent
     // Note: expectimax creates its own nodesExplored counter, but depth limit prevents infinite recursion
-    const opponentResult = expectimax(state, opponent, limitedOpponentConfig, playerConfig);
+    const opponentResult = expectimax(
+      state,
+      opponent,
+      limitedOpponentConfig,
+      playerConfig,
+    );
     opponentMove = opponentResult.bestMove;
-    
+
     // Account for nodes explored in opponent's search (approximate, since we can't share the counter)
     // The depth limit ensures recursion terminates, and MAX_NODES check in each node prevents runaway searches
     nodesExplored.count += opponentResult.nodesExplored;
@@ -307,9 +330,23 @@ function chanceNode(
   if (state.phase !== "rolling") {
     // Not a chance node
     if (state.currentPlayer === player) {
-      return maxNode(state, depth, player, playerConfig, opponentConfig, nodesExplored);
+      return maxNode(
+        state,
+        depth,
+        player,
+        playerConfig,
+        opponentConfig,
+        nodesExplored,
+      );
     } else {
-      return minNode(state, depth, player, playerConfig, opponentConfig, nodesExplored);
+      return minNode(
+        state,
+        depth,
+        player,
+        playerConfig,
+        opponentConfig,
+        nodesExplored,
+      );
     }
   }
 
@@ -321,9 +358,23 @@ function chanceNode(
 
     let value: number;
     if (rolledState.currentPlayer === player) {
-      value = maxNode(rolledState, depth, player, playerConfig, opponentConfig, nodesExplored);
+      value = maxNode(
+        rolledState,
+        depth,
+        player,
+        playerConfig,
+        opponentConfig,
+        nodesExplored,
+      );
     } else {
-      value = minNode(rolledState, depth, player, playerConfig, opponentConfig, nodesExplored);
+      value = minNode(
+        rolledState,
+        depth,
+        player,
+        playerConfig,
+        opponentConfig,
+        nodesExplored,
+      );
     }
 
     totalValue += value / 6; // Equal probability for each die value

@@ -143,7 +143,9 @@ export default function WatchPage() {
           onClick={fetchRooms}
           disabled={loading || !isOnline}
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+          />
           Refresh
         </Button>
       </div>
@@ -219,7 +221,9 @@ export default function WatchPage() {
                   <div className="flex items-center gap-4">
                     <div>
                       <span className="text-muted-foreground">Turn: </span>
-                      <span className="font-medium">{room.state.turnNumber}</span>
+                      <span className="font-medium">
+                        {room.state.turnNumber}
+                      </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Score: </span>

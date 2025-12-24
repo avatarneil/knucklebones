@@ -2,7 +2,8 @@
  * WASM bindings for high-performance AI engine
  */
 
-let wasmModule: typeof import("../../../wasm/pkg/knucklebones_ai") | null = null;
+let wasmModule: typeof import("../../../wasm/pkg/knucklebones_ai") | null =
+  null;
 let aiEngine: any = null;
 let opponentProfile: any = null;
 let wasmInitialized = false;
@@ -16,14 +17,14 @@ async function initWasmInternal(): Promise<void> {
   if (typeof window === "undefined") {
     return;
   }
-  
+
   if (wasmInitialized) return;
-  
+
   if (wasmInitPromise) {
     await wasmInitPromise;
     return;
   }
-  
+
   wasmInitPromise = (async () => {
     try {
       // Dynamic import to avoid blocking if WASM fails to load
@@ -32,13 +33,16 @@ async function initWasmInternal(): Promise<void> {
       aiEngine = new wasmModule.AIEngine();
       wasmInitialized = true;
     } catch (error) {
-      console.warn("WASM AI engine failed to initialize, will use JS fallback:", error);
+      console.warn(
+        "WASM AI engine failed to initialize, will use JS fallback:",
+        error,
+      );
       wasmModule = null;
       aiEngine = null;
       wasmInitialized = false;
     }
   })();
-  
+
   await wasmInitPromise;
 }
 
@@ -57,18 +61,18 @@ function ensureWasmReady(): boolean {
   if (typeof window === "undefined") {
     return false;
   }
-  
+
   // If already initialized, return true
   if (wasmInitialized && aiEngine) return true;
-  
+
   // If initialization is in progress, return false (will use JS fallback)
   if (wasmInitPromise) return false;
-  
+
   // Start initialization in background (non-blocking)
   initWasmInternal().catch(() => {
     // Already handled in initWasmInternal
   });
-  
+
   return false;
 }
 
@@ -175,7 +179,7 @@ export function getOpponentProfile(): any {
   if (!ensureWasmReady() || !wasmModule) {
     return null;
   }
-  
+
   if (!opponentProfile) {
     try {
       opponentProfile = new wasmModule.OpponentProfile();
@@ -184,7 +188,7 @@ export function getOpponentProfile(): any {
       return null;
     }
   }
-  
+
   return opponentProfile;
 }
 
@@ -203,7 +207,7 @@ export function recordOpponentMove(
 ): void {
   const profile = getOpponentProfile();
   if (!profile) return;
-  
+
   try {
     profile.record_move(col, dieValue, removedCount, scoreLost);
   } catch (error) {
@@ -217,7 +221,7 @@ export function recordOpponentMove(
 export function endProfileGame(): void {
   const profile = getOpponentProfile();
   if (!profile) return;
-  
+
   try {
     profile.end_game();
   } catch (error) {
@@ -231,7 +235,7 @@ export function endProfileGame(): void {
 export function resetOpponentProfile(): void {
   const profile = getOpponentProfile();
   if (!profile) return;
-  
+
   try {
     profile.reset();
   } catch (error) {
@@ -250,7 +254,7 @@ export function getProfileStats(): {
 } | null {
   const profile = getOpponentProfile();
   if (!profile) return null;
-  
+
   try {
     return {
       gamesCompleted: profile.get_games_completed(),
@@ -280,17 +284,17 @@ export function getMasterMoveWasm(
   if (!ensureWasmReady() || !aiEngine) {
     return null;
   }
-  
+
   const profile = getOpponentProfile();
   if (!profile) {
     return null;
   }
-  
+
   try {
     const grid1Arr = gridToArray(grid1);
     const grid2Arr = gridToArray(grid2);
     const playerNum = currentPlayer === "player1" ? 0 : 1;
-    
+
     const result = aiEngine.get_master_move(
       grid1Arr,
       grid2Arr,
@@ -298,7 +302,7 @@ export function getMasterMoveWasm(
       currentDie,
       profile,
     );
-    
+
     return result === -1 ? null : result;
   } catch (error) {
     console.warn("WASM master move calculation failed:", error);

@@ -58,7 +58,8 @@ export function ScoreCard({
         >
           {diff > 0 ? (
             <>
-              <TrendingUp className="w-[clamp(0.75rem,2vw,1rem)] h-[clamp(0.75rem,2vw,1rem)]" />+{diff}
+              <TrendingUp className="w-[clamp(0.75rem,2vw,1rem)] h-[clamp(0.75rem,2vw,1rem)]" />
+              +{diff}
             </>
           ) : diff < 0 ? (
             <>
@@ -67,11 +68,14 @@ export function ScoreCard({
             </>
           ) : (
             <>
-              <Minus className="w-[clamp(0.75rem,2vw,1rem)] h-[clamp(0.75rem,2vw,1rem)]" />0
+              <Minus className="w-[clamp(0.75rem,2vw,1rem)] h-[clamp(0.75rem,2vw,1rem)]" />
+              0
             </>
           )}
         </div>
-        <span className="text-[clamp(0.625rem,1.5vw,0.75rem)] text-muted-foreground">vs</span>
+        <span className="text-[clamp(0.625rem,1.5vw,0.75rem)] text-muted-foreground">
+          vs
+        </span>
       </div>
 
       {/* Player 2 */}

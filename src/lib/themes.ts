@@ -2,7 +2,14 @@
  * Theme definitions for the application
  */
 
-export type ThemeId = "legacy" | "cult-of-the-lamb" | "dark" | "light" | "ocean" | "forest" | "oled-dark";
+export type ThemeId =
+  | "legacy"
+  | "cult-of-the-lamb"
+  | "dark"
+  | "light"
+  | "ocean"
+  | "forest"
+  | "oled-dark";
 
 export interface Theme {
   id: ThemeId;

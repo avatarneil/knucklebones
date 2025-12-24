@@ -217,7 +217,10 @@ export default function MultiplayerPage() {
                       <EyeOff className="w-4 h-4 text-muted-foreground" />
                     )}
                     <div className="flex flex-col">
-                      <Label htmlFor="public-room" className="text-sm font-medium cursor-pointer">
+                      <Label
+                        htmlFor="public-room"
+                        className="text-sm font-medium cursor-pointer"
+                      >
                         {isPublic ? "Public Room" : "Private Room"}
                       </Label>
                       <span className="text-xs text-muted-foreground">

@@ -60,7 +60,9 @@ export function ResultsGraph({
         <div className="space-y-1.5">
           {/* Player 1 Wins */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground w-20">Player 1:</span>
+            <span className="text-xs text-muted-foreground w-20">
+              Player 1:
+            </span>
             <div className="flex-1 h-6 bg-muted rounded overflow-hidden relative">
               <div
                 className="h-full bg-green-500 transition-all duration-300 ease-out"
@@ -74,7 +76,9 @@ export function ResultsGraph({
 
           {/* Player 2 Wins */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground w-20">Player 2:</span>
+            <span className="text-xs text-muted-foreground w-20">
+              Player 2:
+            </span>
             <div className="flex-1 h-6 bg-muted rounded overflow-hidden relative">
               <div
                 className="h-full bg-red-500 transition-all duration-300 ease-out"
@@ -125,7 +129,9 @@ export function ResultsGraph({
           </div>
         </div>
         <div className="col-span-2">
-          <div className="text-xs text-muted-foreground">Avg Runtime per Game</div>
+          <div className="text-xs text-muted-foreground">
+            Avg Runtime per Game
+          </div>
           <div className="text-lg font-semibold">
             {stats.averageRuntimePerGame > 0
               ? stats.averageRuntimePerGame < 1000

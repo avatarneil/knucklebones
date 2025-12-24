@@ -11,14 +11,14 @@ const nextConfig: NextConfig = {
         ...config.experiments,
         asyncWebAssembly: true,
       };
-      
+
       // Handle WASM files (client-side only)
       config.module.rules.push({
         test: /\.wasm$/,
         type: "asset/resource",
       });
     }
-    
+
     return config;
   },
   // Add empty turbopack config to silence warning (we're using webpack)

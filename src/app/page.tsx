@@ -1,6 +1,15 @@
 "use client";
 
-import { Bot, Dices, Eye, GraduationCap, Sparkles, Swords, TrendingUp, Users } from "lucide-react";
+import {
+  Bot,
+  Dices,
+  Eye,
+  GraduationCap,
+  Sparkles,
+  Swords,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";

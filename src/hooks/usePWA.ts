@@ -34,11 +34,15 @@ function isIOS(): boolean {
 function isMobileDevice(): boolean {
   if (typeof window === "undefined") return false;
   // Check for touch capability and screen size
-  const hasTouchScreen = navigator.maxTouchPoints > 0 || "ontouchstart" in window;
+  const hasTouchScreen =
+    navigator.maxTouchPoints > 0 || "ontouchstart" in window;
   const isSmallScreen = window.innerWidth <= 768;
   const userAgent = navigator.userAgent.toLowerCase();
-  const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
-  
+  const isMobileUA =
+    /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+      userAgent,
+    );
+
   return isMobileUA || (hasTouchScreen && isSmallScreen);
 }
 
@@ -47,7 +51,8 @@ function isStandalone(): boolean {
   if (typeof window === "undefined") return false;
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
-    (window.navigator as unknown as { standalone?: boolean }).standalone === true
+    (window.navigator as unknown as { standalone?: boolean }).standalone ===
+      true
   );
 }
 
@@ -87,7 +92,7 @@ export function useInstallPrompt() {
       showTimeout = setTimeout(() => {
         setShowPrompt(true);
         setCanInstall(true); // Show iOS instructions
-        
+
         // Auto-dismiss after 30 seconds if not interacted with
         autoDismissTimeout = setTimeout(() => {
           setShowPrompt(false);
@@ -100,12 +105,12 @@ export function useInstallPrompt() {
       e.preventDefault();
       setDeferredPrompt(e);
       setCanInstall(true);
-      
+
       if (shouldShowPrompt) {
         // Show after a delay to let users see the page first
         showTimeout = setTimeout(() => {
           setShowPrompt(true);
-          
+
           // Auto-dismiss after 30 seconds if not interacted with
           autoDismissTimeout = setTimeout(() => {
             setShowPrompt(false);

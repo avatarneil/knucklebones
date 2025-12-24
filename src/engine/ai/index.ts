@@ -5,7 +5,9 @@
  * Uses WASM for high-performance computation when available.
  */
 
+import { isColumnFull } from "../scorer";
 import type { ColumnIndex, DifficultyLevel, GameState } from "../types";
+import { ALL_COLUMNS } from "../types";
 import {
   DIFFICULTY_CONFIGS,
   getAllDifficultyLevels,
@@ -13,23 +15,21 @@ import {
 } from "./difficulty";
 import { evaluate, evaluateMoveQuick, getGreedyMove } from "./evaluation";
 import { clearTranspositionTable, getBestMove } from "./expectimax";
-import { ALL_COLUMNS } from "../types";
-import { isColumnFull } from "../scorer";
 import {
-  initWasm,
-  getBestMoveWasm,
-  clearWasmCache,
-  isWasmInitialized,
-} from "./wasm-bindings";
-import {
+  endMasterGame,
   getMasterMove,
   getMasterProfileStats,
-  resetMasterProfile,
-  recordOpponentMoveForLearning,
-  endMasterGame,
   isMasterReady,
   type MasterProfileStats,
+  recordOpponentMoveForLearning,
+  resetMasterProfile,
 } from "./master";
+import {
+  clearWasmCache,
+  getBestMoveWasm,
+  initWasm,
+  isWasmInitialized,
+} from "./wasm-bindings";
 
 export { DIFFICULTY_CONFIGS, getDifficultyConfig, getAllDifficultyLevels };
 export { clearTranspositionTable };
@@ -88,7 +88,10 @@ export class AIPlayer {
   /**
    * Choose a move for the current game state
    */
-  chooseMove(state: GameState, opponentDifficulty?: DifficultyLevel): ColumnIndex | null {
+  chooseMove(
+    state: GameState,
+    opponentDifficulty?: DifficultyLevel,
+  ): ColumnIndex | null {
     try {
       // Handle Master AI specially - uses adaptive learning
       if (this.difficulty === "master") {
@@ -98,10 +101,12 @@ export class AIPlayer {
         }
         // Fall through to expert-level play if Master AI not ready
       }
-      
+
       const config = getDifficultyConfig(this.difficulty);
-      const opponentConfig = opponentDifficulty ? getDifficultyConfig(opponentDifficulty) : undefined;
-      
+      const opponentConfig = opponentDifficulty
+        ? getDifficultyConfig(opponentDifficulty)
+        : undefined;
+
       // Try WASM first if available (synchronous, non-blocking)
       if (state.phase === "placing" && state.currentDie !== null) {
         const wasmMove = getBestMoveWasm(
@@ -124,25 +129,34 @@ export class AIPlayer {
           return wasmMove as ColumnIndex;
         }
       }
-      
+
       // Fallback to TypeScript implementation
       const move = getBestMove(state, config, opponentConfig);
-      
+
       // Fallback: if expectimax fails, use a simple heuristic
-      if (move === null && state.phase === "placing" && state.currentDie !== null) {
+      if (
+        move === null &&
+        state.phase === "placing" &&
+        state.currentDie !== null
+      ) {
         const grid = state.grids[state.currentPlayer];
         const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(grid[i]));
         if (legalColumns.length > 0) {
           // Use quick evaluation to pick best column
           const scored = legalColumns.map((col) => ({
             col,
-            score: evaluateMoveQuick(state, col, state.currentDie!, state.currentPlayer),
+            score: evaluateMoveQuick(
+              state,
+              col,
+              state.currentDie!,
+              state.currentPlayer,
+            ),
           }));
           scored.sort((a, b) => b.score - a.score);
           return scored[0]?.col ?? legalColumns[0];
         }
       }
-      
+
       return move;
     } catch (error) {
       console.error("Error computing AI move:", error);
@@ -214,10 +228,12 @@ export function getAIMove(
       }
       // Fall through to expert-level play if Master AI not ready
     }
-    
+
     const config = getDifficultyConfig(difficulty);
-    const opponentConfig = opponentDifficulty ? getDifficultyConfig(opponentDifficulty) : undefined;
-    
+    const opponentConfig = opponentDifficulty
+      ? getDifficultyConfig(opponentDifficulty)
+      : undefined;
+
     // Try WASM first if available (synchronous, non-blocking)
     if (state.phase === "placing" && state.currentDie !== null) {
       const wasmMove = getBestMoveWasm(
@@ -240,25 +256,34 @@ export function getAIMove(
         return wasmMove as ColumnIndex;
       }
     }
-    
+
     // Fallback to TypeScript implementation
     const move = getBestMove(state, config, opponentConfig);
-    
+
     // Fallback: if expectimax fails, use a simple heuristic
-    if (move === null && state.phase === "placing" && state.currentDie !== null) {
+    if (
+      move === null &&
+      state.phase === "placing" &&
+      state.currentDie !== null
+    ) {
       const grid = state.grids[state.currentPlayer];
       const legalColumns = ALL_COLUMNS.filter((i) => !isColumnFull(grid[i]));
       if (legalColumns.length > 0) {
         // Use quick evaluation to pick best column
         const scored = legalColumns.map((col) => ({
           col,
-          score: evaluateMoveQuick(state, col, state.currentDie!, state.currentPlayer),
+          score: evaluateMoveQuick(
+            state,
+            col,
+            state.currentDie!,
+            state.currentPlayer,
+          ),
         }));
         scored.sort((a, b) => b.score - a.score);
         return scored[0]?.col ?? legalColumns[0];
       }
     }
-    
+
     return move;
   } catch (error) {
     console.error("Error computing AI move:", error);

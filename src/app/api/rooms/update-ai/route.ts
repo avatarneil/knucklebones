@@ -5,8 +5,8 @@
  */
 
 import { NextResponse } from "next/server";
-import { getRoom, setRoom } from "@/lib/kv";
 import type { GameState } from "@/engine/types";
+import { getRoom, setRoom } from "@/lib/kv";
 
 interface UpdateAIRoomRequest {
   roomId: string;

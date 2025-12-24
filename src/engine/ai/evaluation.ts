@@ -257,7 +257,12 @@ export function getGreedyMove(state: GameState): ColumnIndex | null {
   // Score each legal move and pick the best
   const scored = legalColumns.map((col) => ({
     col,
-    score: evaluateMoveQuick(state, col, state.currentDie!, state.currentPlayer),
+    score: evaluateMoveQuick(
+      state,
+      col,
+      state.currentDie!,
+      state.currentPlayer,
+    ),
   }));
 
   scored.sort((a, b) => b.score - a.score);
