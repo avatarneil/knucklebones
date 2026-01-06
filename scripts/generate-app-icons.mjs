@@ -4,6 +4,7 @@
  */
 
 import sharp from "sharp";
+import { existsSync } from "fs";
 import { mkdir, writeFile } from "fs/promises";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
@@ -11,7 +12,28 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, "..");
 
-const SOURCE_ICON = join(projectRoot, "public/favicon.png");
+const SOURCE_ICON_PATH = join(projectRoot, "public/favicon.png");
+
+// Validate source icon exists before proceeding
+if (!existsSync(SOURCE_ICON_PATH)) {
+  console.error(
+    `❌ Source icon not found: ${SOURCE_ICON_PATH}\n` +
+      `   Please ensure public/favicon.png exists before running this script.`
+  );
+  process.exit(1);
+}
+
+const SOURCE_ICON = SOURCE_ICON_PATH;
+
+// Android adaptive icon sizing constants (per Android spec)
+// See: https://developer.android.com/develop/ui/views/launch/icon_design_adaptive
+const ADAPTIVE_ICON_TOTAL_SIZE = 108; // Total canvas size in dp
+const ADAPTIVE_ICON_SAFE_ZONE = 66; // Safe zone for icon content in dp
+const ADAPTIVE_ICON_RATIO = ADAPTIVE_ICON_SAFE_ZONE / ADAPTIVE_ICON_TOTAL_SIZE;
+
+// iOS icon background color (used when flattening transparent icons)
+// iOS requires icons WITHOUT alpha channel/transparency
+const IOS_ICON_BACKGROUND = { r: 48, g: 25, b: 52 }; // Dark purple matching the app theme
 
 // Android icon sizes (launcher icons)
 const ANDROID_ICONS = [
@@ -104,8 +126,7 @@ async function generateAndroidIcons() {
 
     // The foreground should be 108dp with the icon in the center 66dp area
     // This means we need to add padding: (108-66)/2 = 21dp padding on each side
-    // As a ratio: icon should be 66/108 = ~61% of the canvas
-    const iconSize = Math.round(size * 0.66);
+    const iconSize = Math.round(size * ADAPTIVE_ICON_RATIO);
     const padding = Math.round((size - iconSize) / 2);
 
     await sharp(SOURCE_ICON)
@@ -135,10 +156,10 @@ async function generateIOSIcons() {
     const pixelSize = Math.round(size * scale);
 
     // iOS requires icons WITHOUT alpha channel/transparency
-    // Flatten onto a background color (using the icon's background color)
+    // Flatten onto a background color (using the configured background color)
     await sharp(SOURCE_ICON)
       .resize(pixelSize, pixelSize)
-      .flatten({ background: { r: 48, g: 25, b: 52 } }) // Dark purple background matching the icon
+      .flatten({ background: IOS_ICON_BACKGROUND })
       .png()
       .toFile(join(iosIconDir, filename));
 
