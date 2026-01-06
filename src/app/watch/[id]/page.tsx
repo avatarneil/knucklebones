@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import type { GameState } from "@/engine/types";
 import { useOnlineStatus } from "@/hooks/usePWA";
+import { getApiBaseUrl } from "@/lib/api";
 
 interface RoomState {
   roomId: string;
@@ -53,7 +54,7 @@ export default function WatchRoomPage() {
 
     try {
       setError(null);
-      const response = await fetch(`/api/rooms/${roomId}/state`);
+      const response = await fetch(`${getApiBaseUrl()}/api/rooms/${roomId}/state`);
       const data = await response.json();
 
       if (data.success) {
@@ -89,7 +90,7 @@ export default function WatchRoomPage() {
     }
 
     try {
-      const response = await fetch(`/api/rooms/${roomId}/follow`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/rooms/${roomId}/follow`, {
         body: JSON.stringify({
           action: isFollowing ? "unfollow" : "follow",
           watcherToken,

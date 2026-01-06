@@ -8,15 +8,22 @@
     "build:wasm": "cd wasm && wasm-pack build --target web --out-dir pkg",
     "build:wasm:release": "cd wasm && wasm-pack build --target web --out-dir pkg --release",
     "build:wasm:check": "command -v wasm-pack >/dev/null 2>&1 && npm run build:wasm:release || echo 'WASM build skipped: wasm-pack not found'",
+    "build:native": "./scripts/build-native.sh",
     "vercel-build": "./vercel-build.sh",
     "start": "next start",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
-    "generate-icons": "node scripts/generate-icons.mjs"
+    "generate-icons": "node scripts/generate-icons.mjs",
+    "cap:sync": "bunx cap sync",
+    "cap:ios": "bunx cap open ios",
+    "cap:android": "bunx cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-select": "^2.2.6",
@@ -34,6 +41,7 @@
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.0.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

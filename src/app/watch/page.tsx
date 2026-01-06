@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOnlineStatus } from "@/hooks/usePWA";
+import { getApiBaseUrl } from "@/lib/api";
 
 interface PublicRoom {
   roomId: string;
@@ -40,7 +41,7 @@ export default function WatchPage() {
 
     try {
       setError(null);
-      const response = await fetch("/api/rooms/public");
+      const response = await fetch(`${getApiBaseUrl()}/api/rooms/public`);
       const data = await response.json();
 
       if (data.success) {

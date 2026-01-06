@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ColumnIndex, DieValue, GameState, Player } from "@/engine/types";
+import { getApiBaseUrl } from "@/lib/api";
 
 interface RoomState {
   state: GameState;
@@ -122,7 +123,7 @@ export function useMultiplayer(): UseMultiplayerReturn {
     }
 
     try {
-      const response = await fetch(`/api/rooms/${currentRoomId}/state`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/rooms/${currentRoomId}/state`, {
         headers: token ? { "x-player-token": token } : {},
       });
 
@@ -204,7 +205,7 @@ export function useMultiplayer(): UseMultiplayerReturn {
   const createRoom = useCallback(
     async (playerName: string, isPublic = false): Promise<string> => {
       try {
-        const response = await fetch("/api/rooms/create", {
+        const response = await fetch(`${getApiBaseUrl()}/api/rooms/create`, {
           body: JSON.stringify({ playerName, isPublic }),
           headers: { "Content-Type": "application/json" },
           method: "POST",
@@ -238,7 +239,7 @@ export function useMultiplayer(): UseMultiplayerReturn {
   const joinRoom = useCallback(
     async (roomIdToJoin: string, playerName: string): Promise<boolean> => {
       try {
-        const response = await fetch("/api/rooms/join", {
+        const response = await fetch(`${getApiBaseUrl()}/api/rooms/join`, {
           body: JSON.stringify({ roomId: roomIdToJoin, playerName }),
           headers: { "Content-Type": "application/json" },
           method: "POST",
@@ -276,7 +277,7 @@ export function useMultiplayer(): UseMultiplayerReturn {
 
     if (token) {
       try {
-        await fetch("/api/rooms/leave", {
+        await fetch(`${getApiBaseUrl()}/api/rooms/leave`, {
           headers: { "x-player-token": token },
           method: "POST",
         });
@@ -309,7 +310,7 @@ export function useMultiplayer(): UseMultiplayerReturn {
     }
 
     try {
-      const response = await fetch("/api/game/roll", {
+      const response = await fetch(`${getApiBaseUrl()}/api/game/roll`, {
         headers: { "x-player-token": token },
         method: "POST",
       });
@@ -343,7 +344,7 @@ export function useMultiplayer(): UseMultiplayerReturn {
       }
 
       try {
-        const response = await fetch("/api/game/place", {
+        const response = await fetch(`${getApiBaseUrl()}/api/game/place`, {
           body: JSON.stringify({ column }),
           headers: {
             "Content-Type": "application/json",
@@ -381,7 +382,7 @@ export function useMultiplayer(): UseMultiplayerReturn {
     }
 
     try {
-      await fetch("/api/game/rematch", {
+      await fetch(`${getApiBaseUrl()}/api/game/rematch`, {
         headers: { "x-player-token": token },
         method: "POST",
       });
