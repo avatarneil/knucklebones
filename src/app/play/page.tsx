@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { useSettings } from "@/contexts/SettingsContext";
 import { DIFFICULTY_CONFIGS, createInitialState } from "@/engine";
 import { isColumnFull } from "@/engine/scorer";
 import type { ColumnIndex, DifficultyLevel, GameState } from "@/engine/types";
@@ -52,6 +53,7 @@ function PlayContent() {
   const initialDifficulty = (searchParams.get("difficulty") as DifficultyLevel) || "medium";
   const initialTraining = searchParams.get("training") === "true";
 
+  const { settings } = useSettings();
   const [showSettings, setShowSettings] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
@@ -371,7 +373,7 @@ function PlayContent() {
   }
 
   return (
-    <main className="h-[100dvh] flex flex-col p-[clamp(0.5rem,2vw,1.5rem)] overflow-hidden" style={{ paddingTop: 'max(1rem, calc(env(safe-area-inset-top) + 0.5rem))', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
+    <main className="h-[100dvh] flex flex-col p-[clamp(0.5rem,2vw,1.5rem)] overflow-hidden" style={{ paddingTop: 'max(0.5rem, calc(env(safe-area-inset-top) + 0.25rem))', paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom))', paddingLeft: 'max(0.5rem, env(safe-area-inset-left))', paddingRight: 'max(0.5rem, env(safe-area-inset-right))' }}>
       <InstallPrompt />
       {/* Header */}
       <header className="flex items-center justify-between mb-[clamp(0.5rem,1.5vw,1rem)] flex-shrink-0">
@@ -476,6 +478,7 @@ function PlayContent() {
           isPlayer2Human={false}
           moveAnalysis={game.moveAnalysis ?? undefined}
           showProbabilities={game.isTrainingMode}
+          landscapeLayout={settings.landscapeLayout}
         />
 
         {/* Keyboard Shortcuts Widget */}

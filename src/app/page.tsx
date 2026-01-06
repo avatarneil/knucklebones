@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Dices, Eye, GraduationCap, Sparkles, Swords, TrendingUp, Users } from "lucide-react";
+import { Bot, Dices, Eye, GraduationCap, Settings, Sparkles, Swords, TrendingUp, Users } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -24,8 +24,13 @@ export default function Home() {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-8 relative" style={{ paddingTop: 'max(1rem, calc(env(safe-area-inset-top) + 1rem))', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
-      {/* Theme Switcher */}
-      <div className="absolute right-4" style={{ top: 'max(1rem, calc(env(safe-area-inset-top) + 1rem))' }}>
+      {/* Top right controls */}
+      <div className="absolute right-4 flex items-center gap-2" style={{ top: 'max(1rem, calc(env(safe-area-inset-top) + 1rem))' }}>
+        <Link href="/settings">
+          <Button variant="ghost" size="icon">
+            <Settings className="h-5 w-5" />
+          </Button>
+        </Link>
         <ThemeSwitcher />
       </div>
 

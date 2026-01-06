@@ -97,6 +97,9 @@ body {
   min-height: 100dvh;
   /* Prevent overscroll bounce on iOS */
   overscroll-behavior: none;
+  /* Safe area padding for notched devices */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 /* Background pattern - subtle ritual circles */
@@ -206,6 +209,7 @@ body::before {
 /* Mobile landscape layout support */
 /* Apply horizontal layout when in landscape orientation with sufficient width */
 @media (orientation: landscape) and (min-width: 480px) and (max-width: 1023px) {
+  /* Center layout (default) */
   .landscape-horizontal {
     flex-direction: row !important;
   }
@@ -233,5 +237,34 @@ body::before {
 
   .landscape-grid-right {
     justify-content: flex-start;
+  }
+
+  /* Right layout - dice on far right */
+  .landscape-horizontal-right {
+    flex-direction: row !important;
+  }
+
+  .landscape-right-show {
+    display: flex !important;
+  }
+
+  .landscape-right-hide {
+    display: none !important;
+  }
+
+  .landscape-right-center {
+    flex-shrink: 0;
+    order: 0;
+  }
+
+  /* Hide dice in center section when using right layout */
+  .landscape-right-dice-hide {
+    display: none !important;
+  }
+
+  /* Show dice on the right side */
+  .landscape-right-dice-show {
+    display: flex !important;
+    order: 10;
   }
 }
