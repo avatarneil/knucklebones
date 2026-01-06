@@ -77,3 +77,4 @@ wasm/target/
 
 # Rust build scripts output
 **/build.rs.out
+**/__pycache__/

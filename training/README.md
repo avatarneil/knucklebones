@@ -4,6 +4,15 @@ This directory contains the Python-based training pipeline for the hybrid MCTS +
 
 ## Setup
 
+Using [uv](https://github.com/astral-sh/uv) (recommended):
+
+```bash
+cd training
+uv pip install -r requirements.txt
+```
+
+Or with standard pip:
+
 ```bash
 cd training
 pip install -r requirements.txt
@@ -23,14 +32,38 @@ Run the training pipeline:
 
 ```bash
 # Basic training (10 iterations, 100 games each)
-python train.py
+uv run python train.py
 
 # Custom settings
-python train.py --iterations 20 --games 200 --simulations 400
+uv run python train.py --iterations 20 --games 200 --simulations 400
 
 # Resume from checkpoint
-python train.py --resume checkpoints/checkpoint_5.pt --iterations 10
+uv run python train.py --resume checkpoints/checkpoint_5.pt --iterations 10
 ```
+
+Or without uv:
+
+```bash
+python train.py --iterations 20 --games 200 --simulations 400
+```
+
+### Performance Options
+
+The training automatically uses hardware acceleration:
+- **Apple Silicon (M1/M2/M3/M4)**: Uses MPS (Metal Performance Shaders) for GPU training
+- **NVIDIA GPU**: Uses CUDA if available
+- **Parallel self-play**: Uses multiple CPU cores for game generation
+
+```bash
+# Control parallelism
+uv run python train.py --workers 4          # Limit to 4 workers
+uv run python train.py --no-parallel        # Sequential (uses network guidance)
+
+# Faster training with fewer simulations (less accurate but quicker)
+uv run python train.py --simulations 100 --games 500
+```
+
+**Tip**: On M series Macs, training is significantly faster than CPU-only. The script will show `(Apple Silicon GPU acceleration enabled)` when MPS is active.
 
 ### Training Parameters
 
@@ -49,13 +82,13 @@ Run tournaments to evaluate agent strength:
 
 ```bash
 # Basic tournament (Random, Greedy, MCTS-Heuristic)
-python tournament.py --games 100
+uv run python tournament.py --games 100
 
 # Include neural network agent
-python tournament.py --games 100 --weights checkpoints/weights.json
+uv run python tournament.py --games 100 --weights checkpoints/weights.json
 
 # Save results to JSON
-python tournament.py --games 200 --weights checkpoints/weights.json --output results.json
+uv run python tournament.py --games 200 --weights checkpoints/weights.json --output results.json
 ```
 
 ## Using Trained Weights in the App

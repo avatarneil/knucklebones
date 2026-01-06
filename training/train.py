@@ -6,12 +6,16 @@ This script:
 1. Generates self-play games using MCTS
 2. Trains the policy-value network on the generated data
 3. Exports weights for use in the WASM engine
+
+Supports Apple Silicon (MPS) acceleration and parallel self-play.
 """
 
 import argparse
 import json
 import os
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from multiprocessing import cpu_count
 from pathlib import Path
 from typing import List, Tuple
 
@@ -27,15 +31,46 @@ from mcts import self_play_game
 from network import PolicyValueNetwork, create_network
 
 
+def get_device() -> torch.device:
+    """Get the best available device (MPS for Apple Silicon, CUDA, or CPU)."""
+    if torch.backends.mps.is_available():
+        return torch.device("mps")
+    elif torch.cuda.is_available():
+        return torch.device("cuda")
+    else:
+        return torch.device("cpu")
+
+
+def _play_single_game(args: Tuple[int, int, float]) -> List[Tuple[np.ndarray, np.ndarray, float]]:
+    """Worker function for parallel self-play (no network, uses heuristic)."""
+    simulations_per_move, temperature, _ = args
+    return self_play_game(
+        network=None,  # Use heuristic for parallel games
+        simulations=simulations_per_move,
+        temperature=temperature,
+    )
+
+
 def generate_training_data(
     network: PolicyValueNetwork,
     num_games: int,
     simulations_per_move: int = 200,
     temperature: float = 1.0,
     show_progress: bool = True,
+    parallel: bool = True,
+    num_workers: int = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Generate training data through self-play.
+    
+    Args:
+        network: Policy-value network (used for sequential, ignored for parallel)
+        num_games: Number of games to generate
+        simulations_per_move: MCTS simulations per move
+        temperature: Temperature for action selection
+        show_progress: Whether to show progress bar
+        parallel: Whether to use parallel processing (faster but uses heuristic MCTS)
+        num_workers: Number of parallel workers (defaults to CPU count)
     
     Returns:
         states: Array of shape (num_samples, 43)
@@ -46,21 +81,43 @@ def generate_training_data(
     all_policies = []
     all_values = []
     
-    games_iter = range(num_games)
-    if show_progress:
-        games_iter = tqdm(games_iter, desc="Self-play games")
-    
-    for _ in games_iter:
-        samples = self_play_game(
-            network=network,
-            simulations=simulations_per_move,
-            temperature=temperature,
-        )
+    if parallel and num_games >= 4:
+        # Parallel self-play using heuristic MCTS (faster)
+        if num_workers is None:
+            num_workers = min(cpu_count(), num_games, 8)
         
-        for state, policy, value in samples:
-            all_states.append(state)
-            all_policies.append(policy)
-            all_values.append(value)
+        args_list = [(simulations_per_move, temperature, i) for i in range(num_games)]
+        
+        with ProcessPoolExecutor(max_workers=num_workers) as executor:
+            futures = [executor.submit(_play_single_game, args) for args in args_list]
+            
+            games_iter = as_completed(futures)
+            if show_progress:
+                games_iter = tqdm(games_iter, total=num_games, desc=f"Self-play ({num_workers} workers)")
+            
+            for future in games_iter:
+                samples = future.result()
+                for state, policy, value in samples:
+                    all_states.append(state)
+                    all_policies.append(policy)
+                    all_values.append(value)
+    else:
+        # Sequential self-play with network guidance
+        games_iter = range(num_games)
+        if show_progress:
+            games_iter = tqdm(games_iter, desc="Self-play games")
+        
+        for _ in games_iter:
+            samples = self_play_game(
+                network=network,
+                simulations=simulations_per_move,
+                temperature=temperature,
+            )
+            
+            for state, policy, value in samples:
+                all_states.append(state)
+                all_policies.append(policy)
+                all_values.append(value)
     
     return (
         np.array(all_states, dtype=np.float32),
@@ -133,6 +190,8 @@ def train(
     learning_rate: float = 0.001,
     output_dir: str = "checkpoints",
     device: torch.device = None,
+    parallel: bool = True,
+    num_workers: int = None,
 ) -> PolicyValueNetwork:
     """
     Main training loop.
@@ -143,7 +202,7 @@ def train(
     3. Save checkpoint
     """
     if device is None:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = get_device()
     
     network = network.to(device)
     optimizer = optim.Adam(network.parameters(), lr=learning_rate)
@@ -166,10 +225,13 @@ def train(
             network=network,
             num_games=games_per_iteration,
             simulations_per_move=simulations_per_move,
+            parallel=parallel,
+            num_workers=num_workers,
         )
         
         elapsed = time.time() - start_time
-        print(f"Generated {len(states)} samples in {elapsed:.1f}s")
+        games_per_sec = games_per_iteration / elapsed if elapsed > 0 else 0
+        print(f"Generated {len(states)} samples in {elapsed:.1f}s ({games_per_sec:.1f} games/s)")
         
         # Add to accumulated data
         all_states.append(states)
@@ -231,6 +293,8 @@ def main():
     parser.add_argument("--output-dir", type=str, default="checkpoints", help="Output directory")
     parser.add_argument("--export", type=str, default="weights.json", help="Export weights path")
     parser.add_argument("--resume", type=str, default=None, help="Resume from checkpoint")
+    parser.add_argument("--no-parallel", action="store_true", help="Disable parallel self-play")
+    parser.add_argument("--workers", type=int, default=None, help="Number of parallel workers")
     
     args = parser.parse_args()
     
@@ -239,12 +303,21 @@ def main():
     
     if args.resume:
         print(f"Resuming from {args.resume}")
-        checkpoint = torch.load(args.resume)
+        checkpoint = torch.load(args.resume, weights_only=False)
         network.load_state_dict(checkpoint["model_state_dict"])
     
-    # Train
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # Detect best device
+    device = get_device()
     print(f"Using device: {device}")
+    if device.type == "mps":
+        print("  (Apple Silicon GPU acceleration enabled)")
+    elif device.type == "cuda":
+        print(f"  (CUDA GPU: {torch.cuda.get_device_name(0)})")
+    
+    parallel = not args.no_parallel
+    if parallel:
+        workers = args.workers or min(cpu_count(), 8)
+        print(f"Parallel self-play enabled with {workers} workers")
     
     network = train(
         network=network,
@@ -256,6 +329,8 @@ def main():
         learning_rate=args.lr,
         output_dir=args.output_dir,
         device=device,
+        parallel=parallel,
+        num_workers=args.workers,
     )
     
     # Export weights
