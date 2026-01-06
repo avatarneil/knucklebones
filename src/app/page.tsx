@@ -30,7 +30,7 @@ export default function Home() {
       </div>
 
       {/* Title */}
-      <div className="text-center mb-12 animate-fade-in-up">
+      <div className="text-center mb-12 animate-fade-in-up mt-8 sm:mt-0">
         <div className="flex items-center justify-center gap-3 mb-4">
           <Dices className="w-12 h-12 text-accent" />
           <h1 className="text-5xl font-bold bg-gradient-to-r from-accent via-primary to-secondary bg-clip-text text-transparent">
