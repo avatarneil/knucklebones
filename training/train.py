@@ -425,9 +425,13 @@ def main():
     network = create_network()
     start_iteration = 0
     
+    # Detect best device
+    device = get_device()
+
     if args.resume:
         print(f"Resuming from {args.resume}")
-        checkpoint = torch.load(args.resume, weights_only=False)
+        # Map checkpoint to current device (handles MPS->CUDA or CUDA->MPS transfers)
+        checkpoint = torch.load(args.resume, weights_only=False, map_location=device)
         state_dict = checkpoint["model_state_dict"]
         # Handle state dicts from torch.compile() wrapped models
         if any(k.startswith("_orig_mod.") for k in state_dict.keys()):
@@ -435,9 +439,6 @@ def main():
         network.load_state_dict(state_dict)
         start_iteration = checkpoint.get("iteration", 0)
         print(f"  Resuming from iteration {start_iteration}")
-    
-    # Detect best device
-    device = get_device()
     print(f"Using device: {device}")
     if device.type == "mps":
         print("  (Apple Silicon GPU acceleration enabled)")
