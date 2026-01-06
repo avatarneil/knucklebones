@@ -54,41 +54,88 @@ class MCTS:
         network: Optional[PolicyValueNetwork] = None,
         simulations: int = DEFAULT_SIMULATIONS,
         temperature: float = 1.0,
+        batch_size: int = 64,
+        inference_server: Optional["InferenceServer"] = None,
     ):
         """
         Initialize MCTS.
-        
+
         Args:
             network: Policy-value network (uses heuristic if None)
             simulations: Number of simulations per move
             temperature: Temperature for action selection (higher = more exploration)
+            batch_size: Batch size for parallel leaf evaluation (MPS optimization)
+            inference_server: Optional shared inference server for parallel games
         """
         self.network = network
         self.simulations = simulations
         self.temperature = temperature
+        self.batch_size = batch_size
+        self.inference_server = inference_server
         self.root = MCTSNode()
+        # Cache device reference to avoid repeated detection
+        self._device = next(network.parameters()).device if network is not None else None
     
     def get_policy_value(self, state: GameState) -> Tuple[np.ndarray, float]:
         """
-        Get policy and value from network or heuristic.
-        
+        Get policy and value from network, inference server, or heuristic.
+
         Returns:
             policy: Array of shape (3,) with probabilities for each column
             value: Value estimate in [-1, 1]
         """
-        if self.network is not None:
+        # Use inference server if available (for parallel games)
+        if self.inference_server is not None:
+            return self.inference_server.infer(state)
+        elif self.network is not None:
             self.network.eval()
-            with torch.no_grad():
+            with torch.inference_mode():
                 features = encode_state(state)
-                x = torch.from_numpy(features).float()
+                x = torch.from_numpy(features).float().to(self._device)
                 policy, value = self.network.get_policy_value(x)
-                return policy.numpy(), value.item()
+                return policy.cpu().numpy(), value.item()
         else:
             # Uniform policy, heuristic value
             policy = np.ones(3) / 3.0
             value = evaluate_state(state, state.current_player)
             return policy, value
-    
+
+    def get_policy_value_batched(
+        self, states: List[GameState]
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Get policy and value for multiple states in a single batch.
+
+        Optimized for MPS/GPU - amortizes inference overhead across batch.
+
+        Args:
+            states: List of GameState objects
+
+        Returns:
+            policies: Array of shape (batch_size, 3)
+            values: Array of shape (batch_size,)
+        """
+        if not states:
+            return np.empty((0, 3)), np.empty(0)
+
+        # Use inference server if available (for parallel games)
+        if self.inference_server is not None:
+            return self.inference_server.infer_batch(states)
+        elif self.network is not None:
+            self.network.eval()
+            with torch.inference_mode():
+                features = np.stack([encode_state(s) for s in states])
+                x = torch.from_numpy(features).float().to(self._device)
+                log_policy, value = self.network(x)
+                policies = torch.exp(log_policy).cpu().numpy()
+                values = value.squeeze(-1).cpu().numpy()
+                return policies, values
+        else:
+            # Heuristic fallback
+            policies = np.ones((len(states), 3)) / 3.0
+            values = np.array([evaluate_state(s, s.current_player) for s in states])
+            return policies, values
+
     def expand(self, node: MCTSNode, state: GameState) -> None:
         """Expand a node by adding children for legal moves."""
         legal_cols = get_legal_columns(state)
@@ -116,18 +163,75 @@ class MCTS:
         """Select best child according to PUCT."""
         if not node.children:
             return None
-        
+
         best_action = None
         best_score = float("-inf")
-        
+
         for action, child in node.children.items():
             score = child.puct_score(node.visits)
             if score > best_score:
                 best_score = score
                 best_action = action
-        
+
         return best_action
-    
+
+    def _select_path(
+        self, state: GameState, root_player: Player
+    ) -> Tuple[
+        List[Tuple[MCTSNode, Optional[int]]], Optional[MCTSNode], Optional[GameState], Optional[float]
+    ]:
+        """
+        Select a path from root to leaf, applying virtual losses.
+
+        Used by batched search to collect multiple leaves for batch evaluation.
+
+        Args:
+            state: Root game state
+            root_player: Player from whose perspective to evaluate
+
+        Returns:
+            path: List of (node, action) tuples
+            leaf_node: The leaf node needing expansion (or None if terminal)
+            leaf_state: The game state at the leaf
+            terminal_value: If terminal state reached, the game result (else None)
+        """
+        node = self.root
+        path: List[Tuple[MCTSNode, Optional[int]]] = [(node, None)]
+        current_state = state.copy()
+
+        while True:
+            node.visits += 1  # Virtual loss
+
+            # Terminal state
+            if current_state.phase == GamePhase.ENDED:
+                value = get_game_result(current_state, root_player)
+                return path, None, None, value
+
+            # Handle rolling phase (chance node)
+            if current_state.phase == GamePhase.ROLLING:
+                die_value = roll_die()
+                current_state = apply_roll(current_state, die_value)
+                continue
+
+            # Leaf node - needs expansion
+            if not node.children:
+                return path, node, current_state, None
+
+            # Select action and descend
+            action = self.select_child(node)
+            if action is None:
+                value = evaluate_state(current_state, root_player)
+                return path, None, None, value
+
+            new_state = apply_move(current_state, action)
+            if new_state is None:
+                value = evaluate_state(current_state, root_player)
+                return path, None, None, value
+
+            current_state = new_state
+            node = node.children[action]
+            path.append((node, action))
+
     def simulate(self, state: GameState, root_player: Player) -> float:
         """
         Run one MCTS simulation.
@@ -217,12 +321,50 @@ class MCTS:
         
         # Expand root
         self.expand(self.root, state)
-        
-        # Run simulations
+
+        # Run batched simulations for MPS/GPU efficiency
         root_player = state.current_player
-        for _ in range(self.simulations):
-            self.simulate(state, root_player)
-        
+        remaining = self.simulations
+
+        while remaining > 0:
+            current_batch = min(remaining, self.batch_size)
+
+            # Collect paths and leaves for batch evaluation
+            paths = []
+            leaves = []  # (node, state, path_idx)
+            leaf_states = []
+
+            for i in range(current_batch):
+                path, leaf_node, leaf_state, terminal_value = self._select_path(
+                    state, root_player
+                )
+
+                if terminal_value is not None:
+                    # Terminal state - backpropagate immediately
+                    for node, _ in path:
+                        node.total_value += terminal_value
+                elif leaf_node is not None and leaf_state is not None:
+                    # Leaf needs expansion and evaluation
+                    self.expand(leaf_node, leaf_state)
+                    paths.append(path)
+                    leaves.append((leaf_node, leaf_state, len(paths) - 1))
+                    leaf_states.append(leaf_state)
+
+            # Batch evaluate all collected leaves
+            if leaf_states:
+                _, values = self.get_policy_value_batched(leaf_states)
+
+                # Backpropagate each path with its value
+                for idx, (leaf_node, leaf_state, path_idx) in enumerate(leaves):
+                    value = values[idx]
+                    # Adjust for perspective
+                    if leaf_state.current_player != root_player:
+                        value = -value
+                    for node, _ in paths[path_idx]:
+                        node.total_value += value
+
+            remaining -= current_batch
+
         # Get visit counts
         visits = np.zeros(3)
         for action, child in self.root.children.items():
@@ -248,15 +390,28 @@ def self_play_game(
     simulations: int = DEFAULT_SIMULATIONS,
     temperature: float = 1.0,
     temperature_threshold: int = 15,  # Use temp=0 after this many moves
+    inference_server: Optional["InferenceServer"] = None,
 ) -> List[Tuple[np.ndarray, np.ndarray, float]]:
     """
     Play a complete game using MCTS self-play.
-    
+
+    Args:
+        network: Policy-value network (ignored if inference_server provided)
+        simulations: MCTS simulations per move
+        temperature: Temperature for action selection
+        temperature_threshold: Use temp=0 after this many moves
+        inference_server: Optional shared inference server for parallel games
+
     Returns:
         List of (state_features, policy_target, value_target) tuples
     """
     state = GameState.new_game()
-    mcts = MCTS(network=network, simulations=simulations, temperature=temperature)
+    mcts = MCTS(
+        network=network,
+        simulations=simulations,
+        temperature=temperature,
+        inference_server=inference_server,
+    )
     
     history: List[Tuple[np.ndarray, np.ndarray, Player]] = []
     move_count = 0

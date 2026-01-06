@@ -14,7 +14,7 @@ import argparse
 import json
 import os
 import time
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from multiprocessing import cpu_count
 from pathlib import Path
 from typing import List, Tuple
@@ -27,6 +27,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 
 from game import GameState, Player, get_game_result
+from inference_server import InferenceServer
 from mcts import self_play_game
 from network import PolicyValueNetwork, create_network
 
@@ -51,6 +52,19 @@ def _play_single_game(args: Tuple[int, int, float]) -> List[Tuple[np.ndarray, np
     )
 
 
+def _play_single_game_with_server(
+    args: Tuple[int, float, "InferenceServer"]
+) -> List[Tuple[np.ndarray, np.ndarray, float]]:
+    """Worker function for threaded parallel self-play with shared inference server."""
+    simulations_per_move, temperature, inference_server = args
+    return self_play_game(
+        network=None,  # Network accessed via inference server
+        simulations=simulations_per_move,
+        temperature=temperature,
+        inference_server=inference_server,
+    )
+
+
 def generate_training_data(
     network: PolicyValueNetwork,
     num_games: int,
@@ -59,10 +73,11 @@ def generate_training_data(
     show_progress: bool = True,
     parallel: bool = True,
     num_workers: int = None,
+    parallel_network: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Generate training data through self-play.
-    
+
     Args:
         network: Policy-value network (used for sequential, ignored for parallel)
         num_games: Number of games to generate
@@ -71,7 +86,8 @@ def generate_training_data(
         show_progress: Whether to show progress bar
         parallel: Whether to use parallel processing (faster but uses heuristic MCTS)
         num_workers: Number of parallel workers (defaults to CPU count)
-    
+        parallel_network: Use threaded parallel with shared inference server (MPS optimized)
+
     Returns:
         states: Array of shape (num_samples, 43)
         policies: Array of shape (num_samples, 3)
@@ -80,21 +96,62 @@ def generate_training_data(
     all_states = []
     all_policies = []
     all_values = []
-    
-    if parallel and num_games >= 4:
+
+    if parallel_network and num_games >= 2:
+        # Threaded parallel self-play with shared inference server (MPS optimized)
+        if num_workers is None:
+            num_workers = min(4, num_games)  # Threads, not processes
+
+        with InferenceServer(network, batch_size=32, max_wait_ms=2.0) as server:
+            args_list = [
+                (simulations_per_move, temperature, server) for _ in range(num_games)
+            ]
+
+            with ThreadPoolExecutor(max_workers=num_workers) as executor:
+                futures = [
+                    executor.submit(_play_single_game_with_server, args)
+                    for args in args_list
+                ]
+
+                games_iter = as_completed(futures)
+                if show_progress:
+                    games_iter = tqdm(
+                        games_iter,
+                        total=num_games,
+                        desc=f"Self-play ({num_workers} threads, network)",
+                    )
+
+                for future in games_iter:
+                    samples = future.result()
+                    for state, policy, value in samples:
+                        all_states.append(state)
+                        all_policies.append(policy)
+                        all_values.append(value)
+
+            # Print inference server stats
+            stats = server.get_stats()
+            if show_progress and stats["batches"] > 0:
+                print(
+                    f"  Inference server: {stats['requests']} requests in {stats['batches']} batches "
+                    f"(avg {stats['avg_batch_size']:.1f}/batch)"
+                )
+
+    elif parallel and num_games >= 4:
         # Parallel self-play using heuristic MCTS (faster)
         if num_workers is None:
             num_workers = min(cpu_count(), num_games, 8)
-        
+
         args_list = [(simulations_per_move, temperature, i) for i in range(num_games)]
-        
+
         with ProcessPoolExecutor(max_workers=num_workers) as executor:
             futures = [executor.submit(_play_single_game, args) for args in args_list]
-            
+
             games_iter = as_completed(futures)
             if show_progress:
-                games_iter = tqdm(games_iter, total=num_games, desc=f"Self-play ({num_workers} workers)")
-            
+                games_iter = tqdm(
+                    games_iter, total=num_games, desc=f"Self-play ({num_workers} workers)"
+                )
+
             for future in games_iter:
                 samples = future.result()
                 for state, policy, value in samples:
@@ -106,19 +163,19 @@ def generate_training_data(
         games_iter = range(num_games)
         if show_progress:
             games_iter = tqdm(games_iter, desc="Self-play games")
-        
+
         for _ in games_iter:
             samples = self_play_game(
                 network=network,
                 simulations=simulations_per_move,
                 temperature=temperature,
             )
-            
+
             for state, policy, value in samples:
                 all_states.append(state)
                 all_policies.append(policy)
                 all_values.append(value)
-    
+
     return (
         np.array(all_states, dtype=np.float32),
         np.array(all_policies, dtype=np.float32),
@@ -192,41 +249,83 @@ def train(
     device: torch.device = None,
     parallel: bool = True,
     num_workers: int = None,
+    lr_decay: float = 0.95,
+    switch_to_network_at: int = 10,
+    parallel_network: bool = False,
 ) -> PolicyValueNetwork:
     """
     Main training loop.
-    
+
     Each iteration:
     1. Generate new self-play games
     2. Train on all accumulated data
     3. Save checkpoint
+
+    Args:
+        lr_decay: Learning rate decay per iteration (0.95 = 5% decay each iteration)
+        switch_to_network_at: After this many iterations, switch from parallel heuristic
+                              to sequential network-guided self-play for better quality
+        parallel_network: Use threaded parallel with shared inference server (MPS optimized)
     """
     if device is None:
         device = get_device()
-    
+
     network = network.to(device)
+
+    # Apply torch.compile for MPS optimization (significant speedup on Apple Silicon)
+    if device.type == "mps" and hasattr(torch, "compile"):
+        try:
+            network = torch.compile(network, backend="inductor")
+            print("  Applied torch.compile(backend='inductor') for MPS optimization")
+        except Exception as e:
+            print(f"  torch.compile not available: {e}")
+
     optimizer = optim.Adam(network.parameters(), lr=learning_rate)
+    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=lr_decay)
     
     os.makedirs(output_dir, exist_ok=True)
     
-    # Accumulated training data
+    # Accumulated training data (limit to recent data to avoid stale samples)
     all_states = []
     all_policies = []
     all_values = []
+    max_samples = 100000  # Keep training set manageable
     
     for iteration in range(num_iterations):
         print(f"\n=== Iteration {iteration + 1}/{num_iterations} ===")
+        current_lr = optimizer.param_groups[0]['lr']
+        print(f"Learning rate: {current_lr:.6f}")
         
+        # Switch to network-guided self-play after initial iterations
+        use_parallel = parallel and (iteration < switch_to_network_at)
+        use_parallel_network = parallel_network and not use_parallel
+        if iteration == switch_to_network_at and parallel:
+            if parallel_network:
+                print("Switching to parallel network-guided self-play (threaded with inference server)")
+            else:
+                print("Switching to network-guided self-play for better quality data")
+
+        # Adaptive temperature: start exploratory, become more greedy
+        temperature = max(0.5, 1.0 - iteration * 0.02)
+
         # Generate new games
-        print(f"Generating {games_per_iteration} self-play games...")
+        if use_parallel:
+            mode_str = f"parallel ({num_workers or 'auto'} workers)"
+        elif use_parallel_network:
+            mode_str = f"parallel network ({num_workers or 4} threads)"
+        else:
+            mode_str = "network-guided"
+        print(f"Generating {games_per_iteration} self-play games ({mode_str}, temp={temperature:.2f})...")
         start_time = time.time()
-        
+
         states, policies, values = generate_training_data(
             network=network,
             num_games=games_per_iteration,
             simulations_per_move=simulations_per_move,
-            parallel=parallel,
+            temperature=temperature,
+            parallel=use_parallel,
             num_workers=num_workers,
+            parallel_network=use_parallel_network,
         )
         
         elapsed = time.time() - start_time
@@ -243,12 +342,27 @@ def train(
         combined_policies = np.concatenate(all_policies)
         combined_values = np.concatenate(all_values)
         
+        # Trim to max samples (keep most recent)
+        if len(combined_states) > max_samples:
+            combined_states = combined_states[-max_samples:]
+            combined_policies = combined_policies[-max_samples:]
+            combined_values = combined_values[-max_samples:]
+            # Also trim the lists to prevent memory bloat
+            total = sum(len(s) for s in all_states)
+            while total > max_samples and len(all_states) > 1:
+                removed = len(all_states[0])
+                all_states.pop(0)
+                all_policies.pop(0)
+                all_values.pop(0)
+                total -= removed
+        
         dataset = TensorDataset(
             torch.from_numpy(combined_states),
             torch.from_numpy(combined_policies),
             torch.from_numpy(combined_values),
         )
-        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        # num_workers=0 for MPS - multiprocess overhead exceeds benefits for small tensors
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
         
         # Train
         print(f"Training on {len(combined_states)} samples...")
@@ -259,12 +373,16 @@ def train(
             print(f"  Epoch {epoch + 1}/{epochs_per_iteration}: "
                   f"loss={total_loss:.4f} (policy={policy_loss:.4f}, value={value_loss:.4f})")
         
+        # Step the learning rate scheduler
+        scheduler.step()
+        
         # Save checkpoint
         checkpoint_path = os.path.join(output_dir, f"checkpoint_{iteration + 1}.pt")
         torch.save({
             "iteration": iteration + 1,
             "model_state_dict": network.state_dict(),
             "optimizer_state_dict": optimizer.state_dict(),
+            "scheduler_state_dict": scheduler.state_dict(),
         }, checkpoint_path)
         print(f"Saved checkpoint to {checkpoint_path}")
     
@@ -288,23 +406,35 @@ def main():
     parser.add_argument("--games", type=int, default=100, help="Games per iteration")
     parser.add_argument("--simulations", type=int, default=200, help="MCTS simulations per move")
     parser.add_argument("--epochs", type=int, default=5, help="Training epochs per iteration")
-    parser.add_argument("--batch-size", type=int, default=64, help="Training batch size")
+    parser.add_argument("--batch-size", type=int, default=128, help="Training batch size (128 optimal for MPS)")
     parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
+    parser.add_argument("--lr-decay", type=float, default=0.95, help="LR decay per iteration (0.95 = 5%% decay)")
     parser.add_argument("--output-dir", type=str, default="checkpoints", help="Output directory")
     parser.add_argument("--export", type=str, default="weights.json", help="Export weights path")
     parser.add_argument("--resume", type=str, default=None, help="Resume from checkpoint")
-    parser.add_argument("--no-parallel", action="store_true", help="Disable parallel self-play")
-    parser.add_argument("--workers", type=int, default=None, help="Number of parallel workers")
+    parser.add_argument("--no-parallel", action="store_true", help="Disable parallel self-play entirely")
+    parser.add_argument("--parallel-network", action="store_true",
+                        help="Use threaded parallel with shared inference server (faster network-guided)")
+    parser.add_argument("--workers", type=int, default=None, help="Number of parallel workers/threads")
+    parser.add_argument("--switch-at", type=int, default=10,
+                        help="Switch from parallel to network-guided self-play after N iterations")
     
     args = parser.parse_args()
     
     # Create or load network
     network = create_network()
+    start_iteration = 0
     
     if args.resume:
         print(f"Resuming from {args.resume}")
         checkpoint = torch.load(args.resume, weights_only=False)
-        network.load_state_dict(checkpoint["model_state_dict"])
+        state_dict = checkpoint["model_state_dict"]
+        # Handle state dicts from torch.compile() wrapped models
+        if any(k.startswith("_orig_mod.") for k in state_dict.keys()):
+            state_dict = {k.replace("_orig_mod.", ""): v for k, v in state_dict.items()}
+        network.load_state_dict(state_dict)
+        start_iteration = checkpoint.get("iteration", 0)
+        print(f"  Resuming from iteration {start_iteration}")
     
     # Detect best device
     device = get_device()
@@ -315,10 +445,21 @@ def main():
         print(f"  (CUDA GPU: {torch.cuda.get_device_name(0)})")
     
     parallel = not args.no_parallel
+    parallel_network = args.parallel_network
     if parallel:
         workers = args.workers or min(cpu_count(), 8)
-        print(f"Parallel self-play enabled with {workers} workers")
-    
+        if parallel_network:
+            print(f"Parallel self-play for first {args.switch_at} iterations, then parallel network-guided")
+            print(f"  Workers: {workers}, then {args.workers or 4} threads with inference server")
+        else:
+            print(f"Parallel self-play for first {args.switch_at} iterations, then network-guided")
+            print(f"  Workers: {workers}")
+    else:
+        if parallel_network:
+            print(f"Parallel network-guided self-play ({args.workers or 4} threads with inference server)")
+        else:
+            print("Network-guided self-play (slower but higher quality)")
+
     network = train(
         network=network,
         num_iterations=args.iterations,
@@ -331,6 +472,9 @@ def main():
         device=device,
         parallel=parallel,
         num_workers=args.workers,
+        lr_decay=args.lr_decay,
+        switch_to_network_at=args.switch_at,
+        parallel_network=parallel_network,
     )
     
     # Export weights
