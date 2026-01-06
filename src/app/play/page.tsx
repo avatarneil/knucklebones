@@ -373,7 +373,7 @@ function PlayContent() {
   }
 
   return (
-    <main className="h-[100dvh] flex flex-col p-[clamp(0.5rem,2vw,1.5rem)] overflow-hidden" style={{ paddingTop: 'max(0.5rem, calc(env(safe-area-inset-top) + 0.25rem))', paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom))', paddingLeft: 'max(0.5rem, env(safe-area-inset-left))', paddingRight: 'max(0.5rem, env(safe-area-inset-right))' }}>
+    <main className="h-[100dvh] flex flex-col overflow-hidden safe-area-padding">
       <InstallPrompt />
       {/* Header */}
       <header className="flex items-center justify-between mb-[clamp(0.5rem,1.5vw,1rem)] flex-shrink-0">

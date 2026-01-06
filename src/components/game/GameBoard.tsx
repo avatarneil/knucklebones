@@ -68,8 +68,11 @@ export function GameBoard({
   return (
     <div
       className={cn(
-        "flex flex-col lg:flex-row items-center justify-between flex-1 w-full max-w-[min(95vw,clamp(20rem,80vw,56rem))] lg:max-w-[min(95vw,90rem)] mx-auto pt-[clamp(0.5rem,2vw,1rem)] pb-[clamp(0.25rem,1vw,0.5rem)] gap-4 lg:gap-8",
-        useLandscapeRight ? "landscape-horizontal-right" : "landscape-horizontal"
+        "flex flex-col lg:flex-row items-center justify-between flex-1 w-full mx-auto pt-[clamp(0.5rem,2vw,1rem)] pb-[clamp(0.25rem,1vw,0.5rem)] gap-2 lg:gap-8",
+        // Use different max-widths for portrait vs landscape-right mode
+        useLandscapeRight 
+          ? "landscape-horizontal-right max-w-full" 
+          : "landscape-horizontal max-w-[min(95vw,clamp(20rem,80vw,56rem))] lg:max-w-[min(95vw,90rem)]"
       )}
     >
       {/* Mobile portrait: Opponent at top */}

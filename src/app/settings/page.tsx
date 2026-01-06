@@ -21,15 +21,7 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <main
-      className="min-h-[100dvh] flex flex-col p-4 sm:p-8"
-      style={{
-        paddingTop: "max(1rem, calc(env(safe-area-inset-top) + 0.5rem))",
-        paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
-        paddingLeft: "max(1rem, env(safe-area-inset-left))",
-        paddingRight: "max(1rem, env(safe-area-inset-right))",
-      }}
-    >
+    <main className="min-h-[100dvh] flex flex-col p-4 sm:p-8 safe-area-inset">
       {/* Header */}
       <header className="flex items-center gap-4 mb-6 flex-shrink-0">
         <Link href="/">

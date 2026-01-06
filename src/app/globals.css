@@ -90,16 +90,21 @@
   border-color: hsl(var(--border));
 }
 
+html {
+  /* Ensure html fills viewport for Safari */
+  height: 100%;
+  height: -webkit-fill-available;
+}
+
 body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
   font-family: var(--font-sans);
   min-height: 100dvh;
+  min-height: -webkit-fill-available;
   /* Prevent overscroll bounce on iOS */
   overscroll-behavior: none;
-  /* Safe area padding for notched devices */
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Background pattern - subtle ritual circles */
@@ -212,6 +217,7 @@ body::before {
   /* Center layout (default) */
   .landscape-horizontal {
     flex-direction: row !important;
+    gap: 0.5rem !important;
   }
 
   .landscape-show {
@@ -229,6 +235,7 @@ body::before {
 
   .landscape-grid-container {
     flex: 1;
+    min-width: 0; /* Allow shrinking */
   }
 
   .landscape-grid-left {
@@ -242,6 +249,8 @@ body::before {
   /* Right layout - dice on far right */
   .landscape-horizontal-right {
     flex-direction: row !important;
+    gap: 0.25rem !important;
+    justify-content: space-between !important;
   }
 
   .landscape-right-show {
@@ -266,5 +275,37 @@ body::before {
   .landscape-right-dice-show {
     display: flex !important;
     order: 10;
+    flex-shrink: 0;
+  }
+}
+
+/* Safe area utility class for main containers */
+.safe-area-inset {
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+}
+
+/* Safe area padding with minimum padding for game pages */
+.safe-area-padding {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  
+  padding-top: calc(0.5rem + var(--safe-top));
+  padding-bottom: calc(0.25rem + var(--safe-bottom));
+  padding-left: calc(0.5rem + var(--safe-left));
+  padding-right: calc(0.5rem + var(--safe-right));
+}
+
+/* Ensure content doesn't overflow on mobile */
+@supports (padding: max(0px)) {
+  .safe-area-padding {
+    padding-top: max(0.5rem, calc(env(safe-area-inset-top, 0px) + 0.25rem));
+    padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0px));
+    padding-left: max(0.5rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
   }
 }
