@@ -42,7 +42,7 @@ export function Column({
       onClick={isClickable ? onClick : undefined}
       disabled={!isClickable}
       className={cn(
-        "flex flex-col gap-[clamp(0.375rem,1.5vmin,1rem)] p-[clamp(0.375rem,2vmin,1rem)] rounded-lg sm:rounded-xl transition-colors duration-200",
+        "flex flex-col gap-[clamp(0.25rem,1vmin,0.75rem)] p-[clamp(0.25rem,1.5vmin,0.75rem)] rounded-lg sm:rounded-xl transition-colors duration-200",
         isClickable && "cursor-pointer hover:bg-muted/50 hover:scale-105 hover:transition-transform",
         isHighlighted && "ring-2 ring-accent animate-pulse-glow",
         !isClickable && "cursor-default"
@@ -59,7 +59,7 @@ export function Column({
       </div>
 
       {/* Dice slots */}
-      <div className="flex flex-col gap-[clamp(0.375rem,1.5vmin,1rem)]">
+      <div className="flex flex-col gap-[clamp(0.25rem,1vmin,0.75rem)]">
         {displayColumn.map((die, displayIdx) => {
           const actualIndex = displayIndices[displayIdx];
           return (

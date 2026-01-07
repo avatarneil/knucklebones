@@ -212,7 +212,7 @@ export default function WatchRoomPage() {
       </div>
 
       {/* Game Board */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <GameBoard
           state={roomState.state}
           isRolling={roomState.state.phase === "rolling"}
