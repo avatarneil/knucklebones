@@ -260,6 +260,7 @@ def train(
     parallel_network: bool = False,
     use_wandb: bool = False,
     start_iteration: int = 0,
+    replay_window: int = 3,
 ) -> PolicyValueNetwork:
     """
     Main training loop.
@@ -295,11 +296,10 @@ def train(
     
     os.makedirs(output_dir, exist_ok=True)
     
-    # Accumulated training data (limit to recent data to avoid stale samples)
+    # Accumulated training data (limit to recent iterations to avoid stale value targets)
     all_states = []
     all_policies = []
     all_values = []
-    max_samples = 100000  # Keep training set manageable
     
     for iteration in range(num_iterations):
         global_iteration = start_iteration + iteration + 1
@@ -347,25 +347,17 @@ def train(
         all_states.append(states)
         all_policies.append(policies)
         all_values.append(values)
-        
-        # Create dataset from all accumulated data
+
+        # Trim to keep only last N iterations (avoid stale value targets)
+        while len(all_states) > replay_window:
+            all_states.pop(0)
+            all_policies.pop(0)
+            all_values.pop(0)
+
+        # Create dataset from accumulated data
         combined_states = np.concatenate(all_states)
         combined_policies = np.concatenate(all_policies)
         combined_values = np.concatenate(all_values)
-        
-        # Trim to max samples (keep most recent)
-        if len(combined_states) > max_samples:
-            combined_states = combined_states[-max_samples:]
-            combined_policies = combined_policies[-max_samples:]
-            combined_values = combined_values[-max_samples:]
-            # Also trim the lists to prevent memory bloat
-            total = sum(len(s) for s in all_states)
-            while total > max_samples and len(all_states) > 1:
-                removed = len(all_states[0])
-                all_states.pop(0)
-                all_policies.pop(0)
-                all_values.pop(0)
-                total -= removed
         
         dataset = TensorDataset(
             torch.from_numpy(combined_states),
@@ -447,6 +439,8 @@ def main():
     parser.add_argument("--wandb", action="store_true", help="Enable Weights & Biases logging")
     parser.add_argument("--wandb-project", type=str, default="knucklebones", help="W&B project name")
     parser.add_argument("--wandb-name", type=str, default=None, help="W&B run name")
+    parser.add_argument("--replay-window", type=int, default=3,
+                        help="Number of iterations to keep in replay buffer (default: 3)")
 
     args = parser.parse_args()
     
@@ -512,6 +506,7 @@ def main():
                 "switch_at": args.switch_at,
                 "device": str(device),
                 "start_iteration": start_iteration,
+                "replay_window": args.replay_window,
             },
             resume="allow",
         )
@@ -534,6 +529,7 @@ def main():
         parallel_network=parallel_network,
         use_wandb=use_wandb,
         start_iteration=start_iteration,
+        replay_window=args.replay_window,
     )
 
     # Finish wandb run

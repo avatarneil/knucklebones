@@ -117,6 +117,71 @@ View real-time loss curves, learning rate, and throughput at [wandb.ai](https://
 - `--wandb` - Enable Weights & Biases logging
 - `--wandb-project` - W&B project name (default: knucklebones)
 - `--wandb-name` - W&B run name (auto-generated if not specified)
+- `--replay-window` - Number of iterations to keep in replay buffer (default: 3)
+
+## Checkpoint Version Control with DVC
+
+Checkpoints are tracked with [DVC](https://dvc.org/) for git-like version control of model files. This lets you branch, tag, and roll back checkpoints just like code.
+
+### Basic Workflow
+
+```bash
+# After training, save your checkpoint version
+dvc add training/checkpoints
+git add training/checkpoints.dvc
+git commit -m "checkpoint: iteration 15, loss=1.14"
+
+# Tag important milestones
+git tag -a v0.1.0 -m "First stable model"
+```
+
+### Branching Experiments
+
+```bash
+# Create a branch for an experiment
+git checkout -b experiment/lower-lr
+# ... run training with different params ...
+dvc add training/checkpoints
+git add training/checkpoints.dvc
+git commit -m "experiment: lr=0.001"
+
+# Compare with main
+git checkout main
+dvc checkout  # Restores main's checkpoints
+```
+
+### Rolling Back
+
+```bash
+# See checkpoint history
+git log --oneline training/checkpoints.dvc
+
+# Roll back to a previous version
+git checkout <commit-hash> -- training/checkpoints.dvc
+dvc checkout
+
+# Or restore from a tag
+git checkout v0.1.0 -- training/checkpoints.dvc
+dvc checkout
+```
+
+### Sharing Checkpoints (Optional)
+
+To share checkpoints across machines, configure a remote storage:
+
+```bash
+# Use a local directory (for backup)
+dvc remote add -d myremote /path/to/backup
+
+# Or cloud storage (S3, GCS, Azure, etc.)
+dvc remote add -d myremote s3://my-bucket/checkpoints
+
+# Push checkpoints to remote
+dvc push
+
+# Pull on another machine
+dvc pull
+```
 
 ## Evaluation
 
