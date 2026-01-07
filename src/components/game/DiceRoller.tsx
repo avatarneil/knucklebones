@@ -54,7 +54,7 @@ export function DiceRoller({
   }, [isRolling, currentDie]);
 
   return (
-    <div className="flex flex-col items-center gap-[clamp(0.5rem,1.5vmin,1rem)] p-[clamp(0.75rem,2vmin,1.5rem)] rounded-xl sm:rounded-2xl bg-card/70 border border-border/50">
+    <div className="flex flex-col items-center gap-[clamp(0.25rem,1vmin,0.75rem)] p-[clamp(0.5rem,1.5vmin,1rem)] rounded-xl sm:rounded-2xl bg-card/70 border border-border/50">
       {/* Current die display */}
       <div className="relative">
         {currentDie || isRolling ? (
@@ -65,8 +65,8 @@ export function DiceRoller({
             className={cn("transition-transform", isAnimating && "animate-shake")}
           />
         ) : (
-          <div className="w-[clamp(3rem,10vmin,5.5rem)] h-[clamp(3rem,10vmin,5.5rem)] rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
-            <Dices className="w-[clamp(1.5rem,5vmin,2.75rem)] h-[clamp(1.5rem,5vmin,2.75rem)] text-muted-foreground/50" />
+          <div className="w-[clamp(2.5rem,8vmin,5rem)] h-[clamp(2.5rem,8vmin,5rem)] rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
+            <Dices className="w-[clamp(1.25rem,4vmin,2.5rem)] h-[clamp(1.25rem,4vmin,2.5rem)] text-muted-foreground/50" />
           </div>
         )}
       </div>

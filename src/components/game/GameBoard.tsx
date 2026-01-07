@@ -59,7 +59,7 @@ export function GameBoard({
   const player2Score = calculateGridScore(state.grids.player2);
 
   return (
-    <div className="flex flex-col lg:flex-row landscape-horizontal items-center justify-between flex-1 w-full max-w-[min(95vw,clamp(20rem,80vw,56rem))] lg:max-w-[min(95vw,90rem)] mx-auto pt-[clamp(0.5rem,2vw,1rem)] pb-[clamp(0.25rem,1vw,0.5rem)] gap-4 lg:gap-8">
+    <div className="flex flex-col lg:flex-row landscape-horizontal items-center justify-evenly flex-1 w-full max-w-[min(95vw,clamp(20rem,80vw,56rem))] lg:max-w-[min(95vw,90rem)] mx-auto pt-[clamp(0.25rem,1vw,0.5rem)] pb-[clamp(0.25rem,0.5vw,0.25rem)] gap-[clamp(0.25rem,1.5vmin,1rem)] lg:gap-8 min-h-0 overflow-hidden">
       {/* Mobile portrait: Opponent at top */}
       <div className="contents lg:hidden landscape-hide">
         <PlayerGrid

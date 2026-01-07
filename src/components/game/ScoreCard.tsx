@@ -24,7 +24,7 @@ export function ScoreCard({
   const diff = player1Score.total - player2Score.total;
 
   return (
-    <div className="flex items-center justify-center gap-[clamp(1rem,3vw,2rem)] p-[clamp(0.5rem,2vw,1rem)] rounded-lg sm:rounded-xl bg-card/80 border border-border/50">
+    <div className="flex items-center justify-center gap-[clamp(0.75rem,2.5vw,1.5rem)] p-[clamp(0.375rem,1.5vw,0.75rem)] rounded-lg sm:rounded-xl bg-card/80 border border-border/50">
       {/* Player 1 */}
       <div
         className={cn(
