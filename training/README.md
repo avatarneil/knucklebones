@@ -47,23 +47,56 @@ Or without uv:
 python train.py --iterations 20 --games 200 --simulations 400
 ```
 
+### Recommended Training Command
+
+For optimal performance with network-guided MCTS and parallel inference:
+
+```bash
+python train.py \
+    --iterations 30 \
+    --games 200 \
+    --simulations 150 \
+    --parallel-network \
+    --workers 12 \
+    --switch-at 0 \
+    --wandb \
+    --resume checkpoints/checkpoint_N.pt  # Replace N with your latest checkpoint
+```
+
 ### Performance Options
 
 The training automatically uses hardware acceleration:
 - **Apple Silicon (M1/M2/M3/M4)**: Uses MPS (Metal Performance Shaders) for GPU training
 - **NVIDIA GPU**: Uses CUDA if available
 - **Parallel self-play**: Uses multiple CPU cores for game generation
+- **Parallel network-guided**: Uses threaded inference server for faster network-guided training
 
 ```bash
 # Control parallelism
-uv run python train.py --workers 4          # Limit to 4 workers
-uv run python train.py --no-parallel        # Sequential (uses network guidance)
+python train.py --workers 4              # Limit to 4 workers
+python train.py --no-parallel            # Sequential (uses network guidance)
+python train.py --parallel-network       # Threaded parallel with shared inference server
 
 # Faster training with fewer simulations (less accurate but quicker)
-uv run python train.py --simulations 100 --games 500
+python train.py --simulations 100 --games 500
 ```
 
 **Tip**: On M series Macs, training is significantly faster than CPU-only. The script will show `(Apple Silicon GPU acceleration enabled)` when MPS is active.
+
+### Real-time Monitoring with Weights & Biases
+
+Track training progress with wandb:
+
+```bash
+# Install wandb
+uv pip install wandb
+wandb login
+
+# Run with monitoring
+python train.py --wandb --wandb-name "my-run" [other options...]
+```
+
+View real-time loss curves, learning rate, and throughput at [wandb.ai](https://wandb.ai).
 
 ### Training Parameters
 
@@ -71,10 +104,19 @@ uv run python train.py --simulations 100 --games 500
 - `--games` - Self-play games per iteration (default: 100)
 - `--simulations` - MCTS simulations per move (default: 200)
 - `--epochs` - Training epochs per iteration (default: 5)
-- `--batch-size` - Training batch size (default: 64)
+- `--batch-size` - Training batch size (default: 128)
 - `--lr` - Learning rate (default: 0.001)
+- `--lr-decay` - Learning rate decay per iteration (default: 0.95)
 - `--output-dir` - Output directory (default: checkpoints)
 - `--export` - Export weights filename (default: weights.json)
+- `--resume` - Resume from checkpoint file
+- `--workers` - Number of parallel workers/threads
+- `--no-parallel` - Disable parallel self-play (use sequential network-guided)
+- `--parallel-network` - Use threaded parallel with shared inference server
+- `--switch-at` - Switch from heuristic to network-guided after N iterations (default: 10)
+- `--wandb` - Enable Weights & Biases logging
+- `--wandb-project` - W&B project name (default: knucklebones)
+- `--wandb-name` - W&B run name (auto-generated if not specified)
 
 ## Evaluation
 
