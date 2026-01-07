@@ -54,7 +54,7 @@ export function DiceRoller({
   }, [isRolling, currentDie]);
 
   return (
-    <div className="flex flex-col items-center gap-[clamp(0.5rem,1.5vmin,1rem)] p-[clamp(0.75rem,2vmin,1.5rem)] rounded-xl sm:rounded-2xl bg-card/30 backdrop-blur border border-border/50">
+    <div className="flex flex-col items-center gap-[clamp(0.5rem,1.5vmin,1rem)] p-[clamp(0.75rem,2vmin,1.5rem)] rounded-xl sm:rounded-2xl bg-card/70 border border-border/50">
       {/* Current die display */}
       <div className="relative">
         {currentDie || isRolling ? (

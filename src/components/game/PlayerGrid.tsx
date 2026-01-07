@@ -58,7 +58,7 @@ export function PlayerGrid({
   return (
     <div
       className={cn(
-        "flex flex-col items-center gap-[clamp(0.25rem,1.5vmin,1rem)] p-[clamp(0.5rem,2vmin,1.25rem)] rounded-xl sm:rounded-2xl transition-all duration-300",
+        "flex flex-col items-center gap-[clamp(0.25rem,1.5vmin,1rem)] p-[clamp(0.5rem,2vmin,1.25rem)] rounded-xl sm:rounded-2xl transition-colors duration-300",
         isCurrentPlayer && !isOpponent && "ring-2 ring-accent/50 bg-accent/5"
       )}
     >
@@ -66,7 +66,7 @@ export function PlayerGrid({
       <div className="flex items-center gap-[clamp(0.5rem,1.5vw,0.75rem)]">
         <div
           className={cn(
-            "w-[clamp(0.5rem,1.5vw,0.75rem)] h-[clamp(0.5rem,1.5vw,0.75rem)] rounded-full transition-all",
+            "w-[clamp(0.5rem,1.5vw,0.75rem)] h-[clamp(0.5rem,1.5vw,0.75rem)] rounded-full transition-colors",
             isCurrentPlayer ? "bg-accent animate-pulse" : "bg-muted-foreground/30"
           )}
         />
@@ -74,7 +74,7 @@ export function PlayerGrid({
         {isThinking && <Loader2 className="w-4 h-4 animate-spin text-accent" />}
         <div
           className={cn(
-            "font-mono font-bold text-[clamp(1.125rem,3.5vw,1.5rem)] tabular-nums transition-all",
+            "font-mono font-bold text-[clamp(1.125rem,3.5vw,1.5rem)] tabular-nums transition-colors",
             isCurrentPlayer ? "text-accent" : "text-foreground"
           )}
         >
@@ -85,7 +85,7 @@ export function PlayerGrid({
       {/* Grid */}
       <div
         className={cn(
-          "flex gap-[clamp(0.375rem,2vmin,1.25rem)] p-[clamp(0.5rem,2.5vmin,1.25rem)] rounded-lg sm:rounded-xl bg-card/50 backdrop-blur border border-border/50"
+          "flex gap-[clamp(0.375rem,2vmin,1.25rem)] p-[clamp(0.5rem,2.5vmin,1.25rem)] rounded-lg sm:rounded-xl bg-card/80 border border-border/50"
         )}
       >
         {ALL_COLUMNS.map((colIndex) => (

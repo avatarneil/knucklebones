@@ -24,12 +24,12 @@ export function ScoreCard({
   const diff = player1Score.total - player2Score.total;
 
   return (
-    <div className="flex items-center justify-center gap-[clamp(1rem,3vw,2rem)] p-[clamp(0.5rem,2vw,1rem)] rounded-lg sm:rounded-xl bg-card/50 backdrop-blur border border-border/50">
+    <div className="flex items-center justify-center gap-[clamp(1rem,3vw,2rem)] p-[clamp(0.5rem,2vw,1rem)] rounded-lg sm:rounded-xl bg-card/80 border border-border/50">
       {/* Player 1 */}
       <div
         className={cn(
-          "flex flex-col items-center gap-[clamp(0.125rem,0.5vw,0.25rem)] transition-all",
-          currentPlayer === "player1" && "scale-105",
+          "flex flex-col items-center gap-[clamp(0.125rem,0.5vw,0.25rem)] transition-colors",
+          currentPlayer === "player1" && "scale-105 transition-transform",
           winner === "player1" && "text-accent"
         )}
       >
@@ -78,8 +78,8 @@ export function ScoreCard({
       {/* Player 2 */}
       <div
         className={cn(
-          "flex flex-col items-center gap-[clamp(0.125rem,0.5vw,0.25rem)] transition-all",
-          currentPlayer === "player2" && "scale-105",
+          "flex flex-col items-center gap-[clamp(0.125rem,0.5vw,0.25rem)] transition-colors",
+          currentPlayer === "player2" && "scale-105 transition-transform",
           winner === "player2" && "text-accent"
         )}
       >

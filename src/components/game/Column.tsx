@@ -42,8 +42,8 @@ export function Column({
       onClick={isClickable ? onClick : undefined}
       disabled={!isClickable}
       className={cn(
-        "flex flex-col gap-[clamp(0.375rem,1.5vmin,1rem)] p-[clamp(0.375rem,2vmin,1rem)] rounded-lg sm:rounded-xl transition-all duration-200",
-        isClickable && "cursor-pointer hover:bg-muted/50 hover:scale-105",
+        "flex flex-col gap-[clamp(0.375rem,1.5vmin,1rem)] p-[clamp(0.375rem,2vmin,1rem)] rounded-lg sm:rounded-xl transition-colors duration-200",
+        isClickable && "cursor-pointer hover:bg-muted/50 hover:scale-105 hover:transition-transform",
         isHighlighted && "ring-2 ring-accent animate-pulse-glow",
         !isClickable && "cursor-default"
       )}
@@ -51,7 +51,7 @@ export function Column({
       {/* Column score */}
       <div
         className={cn(
-          "text-center font-mono font-bold text-[clamp(0.875rem,2.5vw,1.125rem)] transition-all",
+          "text-center font-mono font-bold text-[clamp(0.875rem,2.5vw,1.125rem)] transition-colors",
           score.total > 0 ? "text-accent" : "text-muted-foreground"
         )}
       >
@@ -78,7 +78,7 @@ export function Column({
       {showProbability && winProbability !== undefined && (
         <div
           className={cn(
-            "text-center text-[clamp(0.625rem,1.5vw,0.75rem)] font-medium rounded-full px-[clamp(0.375rem,1vw,0.5rem)] py-[clamp(0.125rem,0.5vw,0.25rem)] transition-all",
+            "text-center text-[clamp(0.625rem,1.5vw,0.75rem)] font-medium rounded-full px-[clamp(0.375rem,1vw,0.5rem)] py-[clamp(0.125rem,0.5vw,0.25rem)] transition-colors",
             winProbability > 0.5
               ? "bg-green-500/20 text-green-400"
               : winProbability > 0.3

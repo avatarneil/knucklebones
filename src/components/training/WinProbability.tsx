@@ -34,7 +34,7 @@ export function WinProbability({
   );
 
   return (
-    <div className="space-y-3 p-4 rounded-xl bg-card/50 border border-border/50 backdrop-blur">
+    <div className="space-y-3 p-4 rounded-xl bg-card/80 border border-border/50">
       <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
         <Info className="w-4 h-4" />
         Move Analysis
@@ -52,7 +52,7 @@ export function WinProbability({
                   type="button"
                   onClick={() => onSelectColumn?.(move.column)}
                   className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all cursor-pointer",
+                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors cursor-pointer",
                     isBest
                       ? "bg-accent/20 border border-accent/50"
                       : "bg-muted/30 hover:bg-muted/50"
