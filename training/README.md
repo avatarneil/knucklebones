@@ -119,69 +119,52 @@ View real-time loss curves, learning rate, and throughput at [wandb.ai](https://
 - `--wandb-name` - W&B run name (auto-generated if not specified)
 - `--replay-window` - Number of iterations to keep in replay buffer (default: 3)
 
-## Checkpoint Version Control with DVC
+## Checkpoint Version Control with W&B Artifacts
 
-Checkpoints are tracked with [DVC](https://dvc.org/) for git-like version control of model files. This lets you branch, tag, and roll back checkpoints just like code.
+When training with `--wandb`, checkpoints are automatically logged as [W&B Artifacts](https://docs.wandb.ai/guides/artifacts) for version control and easy retrieval.
 
-### Basic Workflow
+### Automatic Logging
 
-```bash
-# After training, save your checkpoint version
-dvc add training/checkpoints
-git add training/checkpoints.dvc
-git commit -m "checkpoint: iteration 15, loss=1.14"
+Each checkpoint is logged with metadata:
+- Iteration number
+- Loss values (total, policy, value)
+- Learning rate
 
-# Tag important milestones
-git tag -a v0.1.0 -m "First stable model"
+View all artifacts at: `https://wandb.ai/<username>/<project>/artifacts`
+
+### Downloading Checkpoints
+
+```python
+import wandb
+
+# Initialize wandb
+wandb.init(project="knucklebones")
+
+# Download a specific checkpoint
+artifact = wandb.use_artifact("checkpoint-50:latest")
+artifact_dir = artifact.download()
+checkpoint_path = f"{artifact_dir}/checkpoint_50.pt"
+
+# Or download by version
+artifact = wandb.use_artifact("checkpoint-50:v0")
 ```
 
-### Branching Experiments
+### CLI Download
 
 ```bash
-# Create a branch for an experiment
-git checkout -b experiment/lower-lr
-# ... run training with different params ...
-dvc add training/checkpoints
-git add training/checkpoints.dvc
-git commit -m "experiment: lr=0.001"
+# Download latest version of a checkpoint
+wandb artifact get <username>/knucklebones/checkpoint-50:latest
 
-# Compare with main
-git checkout main
-dvc checkout  # Restores main's checkpoints
+# Download to specific directory
+wandb artifact get <username>/knucklebones/checkpoint-50:latest --root ./checkpoints
 ```
 
-### Rolling Back
+### Comparing Checkpoints
 
-```bash
-# See checkpoint history
-git log --oneline training/checkpoints.dvc
-
-# Roll back to a previous version
-git checkout <commit-hash> -- training/checkpoints.dvc
-dvc checkout
-
-# Or restore from a tag
-git checkout v0.1.0 -- training/checkpoints.dvc
-dvc checkout
-```
-
-### Sharing Checkpoints (Optional)
-
-To share checkpoints across machines, configure a remote storage:
-
-```bash
-# Use a local directory (for backup)
-dvc remote add -d myremote /path/to/backup
-
-# Or cloud storage (S3, GCS, Azure, etc.)
-dvc remote add -d myremote s3://my-bucket/checkpoints
-
-# Push checkpoints to remote
-dvc push
-
-# Pull on another machine
-dvc pull
-```
+Use the W&B UI to:
+- Compare metrics across checkpoint versions
+- View lineage (which run produced which checkpoint)
+- Delete old versions to save storage
 
 ## Evaluation
 

@@ -413,6 +413,23 @@ def train(
             "scheduler_state_dict": scheduler.state_dict(),
         }, checkpoint_path)
         print(f"Saved checkpoint to {checkpoint_path}")
+
+        # Log checkpoint as wandb artifact for version control
+        if use_wandb:
+            artifact = wandb.Artifact(
+                name=f"checkpoint-{global_iteration}",
+                type="model",
+                metadata={
+                    "iteration": global_iteration,
+                    "loss": total_loss,
+                    "policy_loss": policy_loss,
+                    "value_loss": value_loss,
+                    "learning_rate": current_lr,
+                },
+            )
+            artifact.add_file(checkpoint_path)
+            wandb.log_artifact(artifact)
+            print(f"    [wandb] logged artifact: checkpoint-{global_iteration}")
     
     return network
 
