@@ -5,7 +5,7 @@
  * Supports Master AI learning mode for adaptive opponent modeling.
  */
 
-import { endMasterGame, getAIMove, recordOpponentMoveForLearning } from "./ai";
+import { clearWasmCache, endMasterGame, getAIMove, initWasm, recordOpponentMoveForLearning } from "./ai";
 import { applyMove, rollDie } from "./moves";
 import { calculateGridScore } from "./scorer";
 import { createInitialState } from "./state";
@@ -82,6 +82,11 @@ async function simulateSingleGame(
   player1Strategy: DifficultyLevel,
   player2Strategy: DifficultyLevel
 ): Promise<SimulationResult> {
+  // Clear WASM caches for clean game state (prevents MCTS tree interference)
+  if (player1Strategy === "grandmaster" || player2Strategy === "grandmaster") {
+    clearWasmCache();
+  }
+
   const startTime = performance.now();
   let state = createInitialState();
   const moves: SimulationResult["moves"] = [];
@@ -159,7 +164,7 @@ async function simulateSingleGame(
     // Yield control to UI thread every few moves to prevent blocking
     // For hard/expert/master difficulties, yield more frequently due to heavy computation
     const isHardDifficulty =
-      currentStrategy === "hard" || currentStrategy === "expert" || currentStrategy === "master";
+      currentStrategy === "hard" || currentStrategy === "expert" || currentStrategy === "master" || currentStrategy === "grandmaster";
     const yieldInterval = isHardDifficulty ? 1 : 3;
 
     if (moveCount % yieldInterval === 0) {
@@ -242,10 +247,12 @@ function getConcurrency(
   const isExpert = (strategy: DifficultyLevel) => strategy === "expert";
   const isHard = (strategy: DifficultyLevel) => strategy === "hard";
   const isMaster = (strategy: DifficultyLevel) => strategy === "master";
+  const isGrandmaster = (strategy: DifficultyLevel) => strategy === "grandmaster";
 
   // Master AI must run sequentially to properly learn from each game
-  // (profile updates need to happen in order)
-  if (isMaster(player1Strategy) || isMaster(player2Strategy)) {
+  // Grandmaster AI must run sequentially to avoid MCTS state interference
+  if (isMaster(player1Strategy) || isMaster(player2Strategy) ||
+      isGrandmaster(player1Strategy) || isGrandmaster(player2Strategy)) {
     return 1;
   }
 
@@ -268,6 +275,12 @@ function getConcurrency(
  */
 export async function runSimulation(config: SimulationConfig): Promise<SimulationResult[]> {
   const { numGames, player1Strategy, player2Strategy, onProgress, onGameComplete } = config;
+
+  // Ensure WASM is ready for grandmaster (neural network + MCTS requires WASM)
+  if (player1Strategy === "grandmaster" || player2Strategy === "grandmaster") {
+    await initWasm();
+  }
+
   const results: SimulationResult[] = [];
   const concurrency = getConcurrency(player1Strategy, player2Strategy);
   let nextId = 0;
@@ -324,15 +337,17 @@ export async function runSimulation(config: SimulationConfig): Promise<Simulatio
     }
 
     // Yield control to UI thread between batches
-    // For hard/expert/master difficulties, add a small delay to give UI more breathing room
+    // For hard/expert/master/grandmaster difficulties, add a small delay to give UI more breathing room
     const isHardDifficulty =
       player1Strategy === "hard" ||
       player1Strategy === "expert" ||
       player1Strategy === "master" ||
+      player1Strategy === "grandmaster" ||
       player2Strategy === "hard" ||
       player2Strategy === "expert" ||
-      player2Strategy === "master";
-    const delay = isHardDifficulty ? 10 : 0; // 10ms delay for hard/expert/master
+      player2Strategy === "master" ||
+      player2Strategy === "grandmaster";
+    const delay = isHardDifficulty ? 10 : 0; // 10ms delay for hard/expert/master/grandmaster
     await new Promise((resolve) => setTimeout(resolve, delay));
   }
 

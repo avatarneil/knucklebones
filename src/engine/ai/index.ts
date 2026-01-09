@@ -20,11 +20,33 @@ import {
   resetMasterProfile,
 } from "./master";
 import type { MasterProfileStats, ProfileOwner } from "./master";
-import { clearWasmCache, getBestMoveWasm, initWasm, isWasmInitialized } from "./wasm-bindings";
+import {
+  clearWasmCache,
+  getBestMoveWasm,
+  getHybridMoveWasm,
+  getMctsMoveWasm,
+  getNeuralMctsMoveWasm,
+  initWasm,
+  isHybridNetworkReady,
+  isWasmInitialized,
+} from "./wasm-bindings";
 
 export { DIFFICULTY_CONFIGS, getDifficultyConfig, getAllDifficultyLevels };
 export { clearTranspositionTable };
 export { getGreedyMove };
+
+// MCTS and Hybrid AI exports
+export { getMctsMoveWasm, getHybridMoveWasm };
+export {
+  loadHybridWeights,
+  isHybridNetworkReady,
+  getHybridWeightCount,
+  getNeuralMctsMoveWasm,
+  getNeuralPolicyValue,
+} from "./wasm-bindings";
+
+// WASM initialization and cache management
+export { initWasm, clearWasmCache };
 
 // Master AI exports
 export {
@@ -82,6 +104,41 @@ export class AIPlayer {
    */
   chooseMove(state: GameState, opponentDifficulty?: DifficultyLevel): ColumnIndex | null {
     try {
+      // Handle Grandmaster AI specially - uses MCTS + neural network
+      if (this.difficulty === "grandmaster") {
+        if (state.phase === "placing" && state.currentDie !== null) {
+          const config = getDifficultyConfig(this.difficulty);
+          
+          // Try neural MCTS first if network is ready
+          if (isHybridNetworkReady()) {
+            const neuralMove = getNeuralMctsMoveWasm(
+              state.grids.player1,
+              state.grids.player2,
+              state.currentPlayer,
+              state.currentDie,
+              config.timeBudgetMs
+            );
+            if (neuralMove !== null) {
+              return neuralMove as ColumnIndex;
+            }
+          }
+          
+          // Fall back to MCTS with heuristic evaluation
+          const mctsMove = getMctsMoveWasm(
+            state.grids.player1,
+            state.grids.player2,
+            state.currentPlayer,
+            state.currentDie,
+            config.timeBudgetMs
+          );
+          if (mctsMove !== null) {
+            return mctsMove as ColumnIndex;
+          }
+          
+          // Fall through to expert-level play if MCTS not available
+        }
+      }
+      
       // Handle Master AI specially - uses adaptive learning
       if (this.difficulty === "master") {
         const masterMove = getMasterMove(state);
@@ -112,7 +169,11 @@ export class AIPlayer {
           opponentConfig?.randomness,
           opponentConfig?.offenseWeight,
           opponentConfig?.defenseWeight,
-          opponentConfig?.advancedEval
+          opponentConfig?.advancedEval,
+          config.adversarial,
+          config.timeBudgetMs,
+          opponentConfig?.adversarial,
+          opponentConfig?.timeBudgetMs
         );
         if (wasmMove !== null) {
           return wasmMove as ColumnIndex;
@@ -195,6 +256,41 @@ export function getAIMove(
   opponentDifficulty?: DifficultyLevel
 ): ColumnIndex | null {
   try {
+    // Handle Grandmaster AI specially - uses MCTS + neural network
+    if (difficulty === "grandmaster") {
+      if (state.phase === "placing" && state.currentDie !== null) {
+        const config = getDifficultyConfig(difficulty);
+        
+        // Try neural MCTS first if network is ready
+        if (isHybridNetworkReady()) {
+          const neuralMove = getNeuralMctsMoveWasm(
+            state.grids.player1,
+            state.grids.player2,
+            state.currentPlayer,
+            state.currentDie,
+            config.timeBudgetMs
+          );
+          if (neuralMove !== null) {
+            return neuralMove as ColumnIndex;
+          }
+        }
+        
+        // Fall back to MCTS with heuristic evaluation
+        const mctsMove = getMctsMoveWasm(
+          state.grids.player1,
+          state.grids.player2,
+          state.currentPlayer,
+          state.currentDie,
+          config.timeBudgetMs
+        );
+        if (mctsMove !== null) {
+          return mctsMove as ColumnIndex;
+        }
+        
+        // Fall through to expert-level play if MCTS not available
+      }
+    }
+    
     // Handle Master AI specially - uses adaptive learning
     if (difficulty === "master") {
       const masterMove = getMasterMove(state);
@@ -223,7 +319,11 @@ export function getAIMove(
         opponentConfig?.randomness,
         opponentConfig?.offenseWeight,
         opponentConfig?.defenseWeight,
-        opponentConfig?.advancedEval
+        opponentConfig?.advancedEval,
+        config.adversarial,
+        config.timeBudgetMs,
+        opponentConfig?.adversarial,
+        opponentConfig?.timeBudgetMs
       );
       if (wasmMove !== null) {
         return wasmMove as ColumnIndex;

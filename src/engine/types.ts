@@ -78,7 +78,8 @@ export type DifficultyLevel =
   | "medium"
   | "hard"
   | "expert"
-  | "master";
+  | "master"
+  | "grandmaster";
 
 /** Game mode */
 export type GameMode = "ai" | "pvp" | "training" | "ai-vs-ai";

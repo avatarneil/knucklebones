@@ -23,6 +23,10 @@ export interface DifficultyConfig {
   defenseWeight: number;
   /** Whether to use advanced evaluation heuristics */
   advancedEval: boolean;
+  /** Whether to use true adversarial search (min over all opponent moves) vs modeled opponent */
+  adversarial: boolean;
+  /** Time budget in ms for iterative deepening (0 = use fixed depth) */
+  timeBudgetMs: number;
 }
 
 // prettier-ignore
@@ -38,6 +42,8 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     offenseWeight: 1.0,
     defenseWeight: 0.0,
     advancedEval: false,
+    adversarial: false,
+    timeBudgetMs: 0,
   },
   beginner: {
     name: "Beginner",
@@ -48,6 +54,8 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     offenseWeight: 0.7,
     defenseWeight: 0.3,
     advancedEval: false,
+    adversarial: false,
+    timeBudgetMs: 0,
   },
   easy: {
     name: "Easy",
@@ -58,6 +66,8 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     offenseWeight: 0.6,
     defenseWeight: 0.4,
     advancedEval: false,
+    adversarial: false,
+    timeBudgetMs: 0,
   },
   medium: {
     name: "Medium",
@@ -68,6 +78,8 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     offenseWeight: 0.5,
     defenseWeight: 0.5,
     advancedEval: true,
+    adversarial: false,
+    timeBudgetMs: 0,
   },
   hard: {
     name: "Hard",
@@ -78,26 +90,44 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     offenseWeight: 0.5,
     defenseWeight: 0.5,
     advancedEval: true,
+    adversarial: true,
+    timeBudgetMs: 0,
   },
   expert: {
     name: "Expert",
-    description: "Maximum depth, perfect evaluation",
-    depth: 5,
+    description: "Maximum depth, adversarial search with time budget",
+    depth: 6,
     randomness: 0,
     considerOpponent: true,
     offenseWeight: 0.5,
     defenseWeight: 0.5,
     advancedEval: true,
+    adversarial: true,
+    timeBudgetMs: 100, // 100ms time budget with iterative deepening
   },
   master: {
     name: "Master",
     description: "Learns opponent patterns and adapts strategy",
-    depth: 5,
+    depth: 6,
     randomness: 0,
     considerOpponent: true,
     offenseWeight: 0.5, // Base weight, adapted at runtime
     defenseWeight: 0.5, // Base weight, adapted at runtime
     advancedEval: true,
+    adversarial: true,
+    timeBudgetMs: 100, // 100ms time budget with iterative deepening
+  },
+  grandmaster: {
+    name: "Grandmaster",
+    description: "Hybrid MCTS + neural network for strongest play",
+    depth: 6, // Fallback depth if MCTS unavailable
+    randomness: 0,
+    considerOpponent: true,
+    offenseWeight: 0.5,
+    defenseWeight: 0.5,
+    advancedEval: true,
+    adversarial: true,
+    timeBudgetMs: 100, // 100ms time budget for MCTS
   },
 };
 
@@ -112,5 +142,5 @@ export function getDifficultyConfig(level: DifficultyLevel): DifficultyConfig {
  * Get all difficulty levels in order
  */
 export function getAllDifficultyLevels(): DifficultyLevel[] {
-  return ["greedy", "beginner", "easy", "medium", "hard", "expert", "master"];
+  return ["greedy", "beginner", "easy", "medium", "hard", "expert", "master", "grandmaster"];
 }

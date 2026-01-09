@@ -127,6 +127,8 @@ pub struct DifficultyConfig {
     pub offense_weight: f64,
     pub defense_weight: f64,
     pub advanced_eval: bool,
+    pub adversarial: bool,
+    pub time_budget_ms: f64,
 }
 
 // Transposition table entry
@@ -136,8 +138,57 @@ struct TTEntry {
     value: f64,
 }
 
+// Search context passed through the tree
+struct SearchContext {
+    tt: HashMap<u64, TTEntry>,
+    nodes_explored: u32,
+    max_nodes: u32,
+    start_time: f64,
+    time_budget_ms: f64,
+    aborted: bool,
+    use_adversarial: bool,
+}
+
+impl SearchContext {
+    fn new() -> Self {
+        SearchContext {
+            tt: HashMap::with_capacity(100000),
+            nodes_explored: 0,
+            max_nodes: 500000,
+            start_time: 0.0,
+            time_budget_ms: 0.0,
+            aborted: false,
+            use_adversarial: false,
+        }
+    }
+    
+    fn clear(&mut self) {
+        self.tt.clear();
+        self.nodes_explored = 0;
+        self.aborted = false;
+    }
+    
+    fn should_abort(&mut self) -> bool {
+        if self.aborted {
+            return true;
+        }
+        if self.time_budget_ms <= 0.0 {
+            return false;
+        }
+        // Check time every 1000 nodes to avoid overhead
+        if self.nodes_explored % 1000 == 0 {
+            let elapsed = js_sys::Date::now() - self.start_time;
+            if elapsed >= self.time_budget_ms {
+                self.aborted = true;
+                return true;
+            }
+        }
+        false
+    }
+}
+
 // Fast hash function for game state
-fn hash_state(state: &GameState, depth: u32) -> u64 {
+fn hash_state(state: &GameState, depth: u32, is_max: bool) -> u64 {
     let mut hash = 0u64;
     // Hash grids
     for i in 0..9 {
@@ -147,6 +198,7 @@ fn hash_state(state: &GameState, depth: u32) -> u64 {
     hash = hash.wrapping_mul(31).wrapping_add(state.current_player as u64);
     hash = hash.wrapping_mul(31).wrapping_add(state.current_die.unwrap_or(0) as u64);
     hash = hash.wrapping_mul(31).wrapping_add(depth as u64);
+    hash = hash.wrapping_mul(31).wrapping_add(if is_max { 1 } else { 0 });
     hash
 }
 
@@ -317,28 +369,6 @@ fn evaluate_move_quick(state: &GameState, col: usize, die_value: u8, player: Pla
     score_gain + opponent_loss
 }
 
-// Expectimax search
-struct SearchContext {
-    tt: HashMap<u64, TTEntry>,
-    nodes_explored: u32,
-    max_nodes: u32,
-}
-
-impl SearchContext {
-    fn new() -> Self {
-        SearchContext {
-            tt: HashMap::with_capacity(10000),
-            nodes_explored: 0,
-            max_nodes: 500000,
-        }
-    }
-    
-    fn clear(&mut self) {
-        self.tt.clear();
-        self.nodes_explored = 0;
-    }
-}
-
 fn order_moves(state: &GameState, columns: &[usize], player: Player) -> Vec<usize> {
     if let Some(die_value) = state.current_die {
         let mut scored: Vec<(usize, f64)> = columns.iter()
@@ -401,7 +431,7 @@ fn max_node(
 ) -> f64 {
     ctx.nodes_explored += 1;
     
-    if ctx.nodes_explored > ctx.max_nodes || state.phase == GamePhase::Ended || depth == 0 {
+    if ctx.nodes_explored > ctx.max_nodes || ctx.should_abort() || state.phase == GamePhase::Ended || depth == 0 {
         return evaluate(state, player, player_config);
     }
     
@@ -410,7 +440,7 @@ fn max_node(
     }
     
     // Check transposition table
-    let hash = hash_state(state, depth);
+    let hash = hash_state(state, depth, true);
     if let Some(entry) = ctx.tt.get(&hash) {
         if entry.depth >= depth {
             return entry.value;
@@ -447,8 +477,10 @@ fn max_node(
         }
     }
     
-    // Store in transposition table
-    ctx.tt.insert(hash, TTEntry { depth, value: max_value });
+    // Store in transposition table (limit size)
+    if ctx.tt.len() < 100000 {
+        ctx.tt.insert(hash, TTEntry { depth, value: max_value });
+    }
     
     max_value
 }
@@ -463,7 +495,7 @@ fn min_node(
 ) -> f64 {
     ctx.nodes_explored += 1;
     
-    if ctx.nodes_explored > ctx.max_nodes || state.phase == GamePhase::Ended || depth == 0 {
+    if ctx.nodes_explored > ctx.max_nodes || ctx.should_abort() || state.phase == GamePhase::Ended || depth == 0 {
         return evaluate(state, player, player_config);
     }
     
@@ -483,8 +515,44 @@ fn min_node(
     if legal_columns.is_empty() {
         return evaluate(state, player, player_config);
     }
+
+    // TRUE ADVERSARIAL SEARCH: opponent plays optimally against us
+    if ctx.use_adversarial {
+        // Check transposition table
+        let hash = hash_state(state, depth, false);
+        if let Some(entry) = ctx.tt.get(&hash) {
+            if entry.depth >= depth {
+                return entry.value;
+            }
+        }
+        
+        // Order moves from opponent's perspective (best for them)
+        let ordered = order_moves(state, &legal_columns, state.current_player);
+        let mut min_value = f64::INFINITY;
+        
+        for col in ordered {
+            if let Some(new_state) = apply_move(state, col) {
+                let value = if new_state.phase == GamePhase::Ended {
+                    evaluate(&new_state, player, player_config)
+                } else if new_state.current_player == player {
+                    chance_node(&new_state, depth - 1, player, player_config, opponent_config, ctx)
+                } else {
+                    chance_node(&new_state, depth - 1, player, player_config, opponent_config, ctx)
+                };
+                
+                min_value = min_value.min(value);
+            }
+        }
+        
+        // Store in transposition table
+        if ctx.tt.len() < 100000 {
+            ctx.tt.insert(hash, TTEntry { depth, value: min_value });
+        }
+        
+        return min_value;
+    }
     
-    // Determine opponent's move based on their config
+    // MODELED OPPONENT: Use opponent's config to determine their move
     let opponent = state.current_player;
     let opponent_move: Option<usize> = if opponent_config.depth == 0 {
         // Greedy opponent
@@ -522,7 +590,7 @@ fn min_node(
                 let value = if new_state.phase == GamePhase::Ended {
                     evaluate(&new_state, opponent, &limited_opponent_config)
                 } else {
-                    chance_node(&new_state, opponent_search_depth - 1, opponent, &limited_opponent_config, player_config, ctx)
+                    chance_node(&new_state, opponent_search_depth.saturating_sub(1), opponent, &limited_opponent_config, player_config, ctx)
                 };
                 
                 if value > best_value {
@@ -576,7 +644,7 @@ fn chance_node(
 ) -> f64 {
     ctx.nodes_explored += 1;
     
-    if ctx.nodes_explored > ctx.max_nodes {
+    if ctx.nodes_explored > ctx.max_nodes || ctx.should_abort() {
         return evaluate(state, player, player_config);
     }
     
@@ -600,6 +668,111 @@ fn chance_node(
     }
     
     total_value
+}
+
+/// Internal expectimax search
+fn expectimax_internal(
+    state: &GameState,
+    player: Player,
+    player_config: &DifficultyConfig,
+    opponent_config: &DifficultyConfig,
+    ctx: &mut SearchContext,
+) -> (Option<usize>, f64) {
+    if state.phase != GamePhase::Placing || state.current_die.is_none() {
+        return (None, 0.0);
+    }
+    
+    let grid = match player {
+        Player::Player1 => &state.grid1,
+        Player::Player2 => &state.grid2,
+    };
+    
+    let legal_columns: Vec<usize> = (0..3)
+        .filter(|&col| !grid.is_column_full(col))
+        .collect();
+    
+    if legal_columns.is_empty() {
+        return (None, 0.0);
+    }
+    
+    if legal_columns.len() == 1 {
+        return (Some(legal_columns[0]), 0.0);
+    }
+    
+    let ordered = order_moves(state, &legal_columns, player);
+    let mut best_move: Option<usize> = None;
+    let mut best_value = f64::NEG_INFINITY;
+    
+    for col in ordered {
+        if ctx.should_abort() {
+            break;
+        }
+        
+        if let Some(new_state) = apply_move(state, col) {
+            let value = if new_state.phase == GamePhase::Ended {
+                evaluate(&new_state, player, player_config)
+            } else {
+                chance_node(&new_state, player_config.depth.saturating_sub(1), player, player_config, opponent_config, ctx)
+            };
+            
+            if value > best_value {
+                best_value = value;
+                best_move = Some(col);
+            }
+        }
+    }
+    
+    (best_move, best_value)
+}
+
+/// Iterative deepening search with time budget
+fn iterative_deepening(
+    state: &GameState,
+    player: Player,
+    player_config: &DifficultyConfig,
+    opponent_config: &DifficultyConfig,
+    ctx: &mut SearchContext,
+) -> (Option<usize>, f64, u32) {
+    let start_time = js_sys::Date::now();
+    let time_budget_ms = player_config.time_budget_ms;
+    
+    let mut best_move: Option<usize> = None;
+    let mut best_value = f64::NEG_INFINITY;
+    let mut depth_reached = 0u32;
+    
+    // Start from depth 1 and increase
+    for depth in 1..=player_config.depth {
+        let elapsed = js_sys::Date::now() - start_time;
+        if elapsed >= time_budget_ms * 0.8 {
+            // Leave some time buffer
+            break;
+        }
+        
+        let depth_config = DifficultyConfig {
+            depth,
+            ..*player_config
+        };
+        
+        ctx.start_time = start_time;
+        ctx.time_budget_ms = time_budget_ms;
+        ctx.aborted = false;
+        
+        let (move_opt, value) = expectimax_internal(state, player, &depth_config, opponent_config, ctx);
+        
+        if !ctx.aborted {
+            if let Some(m) = move_opt {
+                best_move = Some(m);
+                best_value = value;
+                depth_reached = depth;
+            }
+        }
+        
+        if ctx.aborted {
+            break;
+        }
+    }
+    
+    (best_move, best_value, depth_reached)
 }
 
 // WASM bindings
@@ -640,6 +813,38 @@ impl AIEngine {
         opponent_defense_weight: f64,
         opponent_advanced_eval: bool,
     ) -> i32 {
+        // Call the extended version with default adversarial=false and time_budget=0
+        self.get_best_move_extended(
+            grid1, grid2, current_player, current_die,
+            depth, randomness, offense_weight, defense_weight, advanced_eval,
+            false, 0.0,  // adversarial, time_budget_ms
+            opponent_depth, opponent_randomness, opponent_offense_weight, opponent_defense_weight, opponent_advanced_eval,
+            false, 0.0,  // opponent adversarial, time_budget_ms
+        )
+    }
+    
+    #[wasm_bindgen]
+    pub fn get_best_move_extended(
+        &mut self,
+        grid1: &[u8],
+        grid2: &[u8],
+        current_player: u8,
+        current_die: u8,
+        depth: u32,
+        randomness: f64,
+        offense_weight: f64,
+        defense_weight: f64,
+        advanced_eval: bool,
+        adversarial: bool,
+        time_budget_ms: f64,
+        opponent_depth: u32,
+        opponent_randomness: f64,
+        opponent_offense_weight: f64,
+        opponent_defense_weight: f64,
+        opponent_advanced_eval: bool,
+        opponent_adversarial: bool,
+        opponent_time_budget_ms: f64,
+    ) -> i32 {
         // Convert from JS arrays to GameState
         let mut state = GameState {
             grid1: Grid { data: [0; 9] },
@@ -650,13 +855,11 @@ impl AIEngine {
             turn_number: 1,
         };
         
-        // Copy grid data (JS sends flat arrays of length 9)
-        // Ensure we don't go out of bounds
+        // Copy grid data
         let len1 = grid1.len().min(9);
         for i in 0..len1 {
             state.grid1.data[i] = grid1[i];
         }
-        // Fill remaining with zeros if needed
         for i in len1..9 {
             state.grid1.data[i] = 0;
         }
@@ -664,7 +867,6 @@ impl AIEngine {
         for i in 0..len2 {
             state.grid2.data[i] = grid2[i];
         }
-        // Fill remaining with zeros if needed
         for i in len2..9 {
             state.grid2.data[i] = 0;
         }
@@ -712,13 +914,15 @@ impl AIEngine {
             return best_col as i32;
         }
         
-        // Expectimax search
+        // Setup configs
         let player_config = DifficultyConfig {
             depth,
             randomness,
             offense_weight,
             defense_weight,
             advanced_eval,
+            adversarial,
+            time_budget_ms,
         };
         
         let opponent_config = DifficultyConfig {
@@ -727,32 +931,29 @@ impl AIEngine {
             offense_weight: opponent_offense_weight,
             defense_weight: opponent_defense_weight,
             advanced_eval: opponent_advanced_eval,
+            adversarial: opponent_adversarial,
+            time_budget_ms: opponent_time_budget_ms,
         };
         
-        let ordered = order_moves(&state, &legal_columns, player);
-        let mut best_move: i32 = -1;
-        let mut best_value = f64::NEG_INFINITY;
+        // Setup context
+        self.ctx.use_adversarial = adversarial;
+        self.ctx.start_time = js_sys::Date::now();
+        self.ctx.time_budget_ms = time_budget_ms;
+        self.ctx.aborted = false;
         
-        for col in ordered {
-            if let Some(new_state) = apply_move(&state, col) {
-                let value = if new_state.phase == GamePhase::Ended {
-                    evaluate(&new_state, player, &player_config)
-                } else {
-                    chance_node(&new_state, depth - 1, player, &player_config, &opponent_config, &mut self.ctx)
-                };
-                
-                if value > best_value {
-                    best_value = value;
-                    best_move = col as i32;
-                }
-            }
+        // Use iterative deepening if time budget is set
+        let best_move = if time_budget_ms > 0.0 {
+            let (move_opt, _, _) = iterative_deepening(&state, player, &player_config, &opponent_config, &mut self.ctx);
+            move_opt
+        } else {
+            let (move_opt, _) = expectimax_internal(&state, player, &player_config, &opponent_config, &mut self.ctx);
+            move_opt
+        };
+        
+        match best_move {
+            Some(col) => col as i32,
+            None => legal_columns[0] as i32,
         }
-        
-        if best_move == -1 {
-            best_move = legal_columns[0] as i32;
-        }
-        
-        best_move
     }
     
     /// Get the best move using Master AI with adaptive weights from opponent profile
@@ -816,14 +1017,22 @@ impl AIEngine {
         // Get adaptive config from profile
         let adaptive_config = profile.get_adaptive_config();
         
-        // Use expert-level opponent modeling
+        // Use expert-level opponent modeling with adversarial search
         let opponent_config = DifficultyConfig {
             depth: 3,
             randomness: 0.0,
             offense_weight: 0.5,
             defense_weight: 0.5,
             advanced_eval: true,
+            adversarial: true,
+            time_budget_ms: 0.0,
         };
+        
+        // Setup context for adversarial search
+        self.ctx.use_adversarial = true;
+        self.ctx.start_time = js_sys::Date::now();
+        self.ctx.time_budget_ms = 100.0; // 100ms budget for master
+        self.ctx.aborted = false;
         
         // Order moves with adaptive bias from profile
         let ordered = order_moves_with_profile(&state, &legal_columns, player, profile);
@@ -831,13 +1040,15 @@ impl AIEngine {
         let mut best_value = f64::NEG_INFINITY;
         
         for col in ordered {
+            if self.ctx.should_abort() {
+                break;
+            }
+            
             if let Some(new_state) = apply_move(&state, col) {
                 let base_value = if new_state.phase == GamePhase::Ended {
                     evaluate(&new_state, player, &adaptive_config)
                 } else {
-                    // depth-1 is standard expectimax: we've consumed one level by making this move,
-                    // so we pass the remaining depth to the recursive chance node
-                    chance_node(&new_state, adaptive_config.depth - 1, player, &adaptive_config, &opponent_config, &mut self.ctx)
+                    chance_node(&new_state, adaptive_config.depth.saturating_sub(1), player, &adaptive_config, &opponent_config, &mut self.ctx)
                 };
                 
                 // Apply column bias from learned opponent patterns
@@ -922,10 +1133,6 @@ impl OpponentProfile {
     }
     
     /// Record an opponent move for learning
-    /// - col: column index (0-2)
-    /// - die_value: die value placed (1-6)
-    /// - removed_count: number of dice removed from our grid
-    /// - score_lost: points we lost from removed dice
     #[wasm_bindgen]
     pub fn record_move(&mut self, col: u8, die_value: u8, removed_count: u8, score_lost: u32) {
         if col > 2 || die_value == 0 || die_value > 6 {
@@ -934,17 +1141,14 @@ impl OpponentProfile {
         
         let col_idx = col as usize;
         
-        // Track column usage (use saturating_add for overflow protection in long-running sessions)
         self.column_usage[col_idx] = self.column_usage[col_idx].saturating_add(1);
         self.total_moves = self.total_moves.saturating_add(1);
         
-        // Track attacks
         if removed_count > 0 {
             self.attack_moves = self.attack_moves.saturating_add(1);
             self.score_lost_to_attacks = self.score_lost_to_attacks.saturating_add(score_lost);
         }
         
-        // Track die value patterns
         if die_value >= 5 {
             self.high_dice_placements[col_idx] = self.high_dice_placements[col_idx].saturating_add(1);
         } else if die_value <= 2 {
@@ -992,15 +1196,12 @@ impl OpponentProfile {
     }
     
     /// Get column usage frequency for a column (0.0 to 1.0)
-    /// Returns 0.0 for invalid column indices to help catch bugs
     #[wasm_bindgen]
     pub fn get_column_frequency(&self, col: u8) -> f64 {
         if col > 2 {
-            // Invalid column index - return 0.0 to avoid masking bugs
             return 0.0;
         }
         if self.total_moves == 0 {
-            // No data yet - default to uniform distribution
             return UNIFORM_COLUMN_FREQUENCY;
         }
         self.column_usage[col as usize] as f64 / self.total_moves as f64
@@ -1009,51 +1210,27 @@ impl OpponentProfile {
 
 impl OpponentProfile {
     /// Calculate adaptive difficulty config based on learned opponent patterns.
-    /// 
-    /// ## Adaptation Strategy
-    /// 
-    /// The Master AI adjusts its offense/defense balance based on opponent aggression:
-    /// 
-    /// - **Aggressive opponents** (attack rate > 40%): We increase defense weight to 
-    ///   protect our high-value dice. Defense weight scales from 0.6 up to ~0.9 as 
-    ///   attack rate increases.
-    /// 
-    /// - **Passive opponents** (attack rate < 20%): We can be more offensive since
-    ///   the opponent doesn't prioritize removing our dice. We use 70% offense.
-    /// 
-    /// - **Neutral opponents** (20-40% attack rate): We use balanced 50/50 weights.
-    /// 
-    /// ## Requirements
-    /// 
-    /// Needs at least 3 completed games and 10 moves to have reliable data.
-    /// Returns expert-level balanced config if insufficient data.
     fn get_adaptive_config(&self) -> DifficultyConfig {
-        // Base expert-level config
         let mut config = DifficultyConfig {
             depth: 5,
             randomness: 0.0,
             offense_weight: 0.5,
             defense_weight: 0.5,
             advanced_eval: true,
+            adversarial: true,
+            time_budget_ms: 100.0,
         };
         
-        // Need sufficient data for adaptation (medium stability)
         if self.games_completed < 3 || self.total_moves < 10 {
             return config;
         }
         
-        // Calculate opponent's attack rate
         let attack_rate = self.get_attack_rate();
         
-        // If opponent is aggressive (attacks often), increase our defense
-        // If opponent is passive, we can be more offensive
         if attack_rate > AGGRESSIVE_ATTACK_THRESHOLD {
-            // Opponent is aggressive - defend more
-            // Scale defense from 0.6 to ~0.9 as attack rate increases
             config.defense_weight = (0.6 + (attack_rate - AGGRESSIVE_ATTACK_THRESHOLD) * 0.5).clamp(0.0, 1.0);
             config.offense_weight = 1.0 - config.defense_weight;
         } else if attack_rate < PASSIVE_ATTACK_THRESHOLD {
-            // Opponent is passive - attack more
             config.offense_weight = 0.7;
             config.defense_weight = 0.3;
         }
@@ -1062,23 +1239,14 @@ impl OpponentProfile {
     }
     
     /// Get bonus for attacking a specific column based on opponent patterns.
-    /// 
-    /// Returns a bonus value that makes the AI favor columns where:
-    /// 1. Opponent frequently places dice (disrupts their patterns)
-    /// 2. Opponent places high-value dice (removes more points)
     fn get_column_attack_bonus(&self, col: usize) -> f64 {
         if self.total_moves < 10 || col > 2 {
             return 0.0;
         }
         
-        // Calculate opponent's preference for this column
         let col_freq = self.column_usage[col] as f64 / self.total_moves as f64;
-        
-        // If opponent uses this column more than average, attacking it is valuable
-        // because we can disrupt their patterns
         let preference_delta = col_freq - UNIFORM_COLUMN_FREQUENCY;
         
-        // Also consider where opponent places high dice - those are valuable targets
         let total_high_dice: u32 = self.high_dice_placements.iter().sum();
         let high_dice_ratio = if total_high_dice > 0 {
             self.high_dice_placements[col] as f64 / total_high_dice as f64
@@ -1086,20 +1254,13 @@ impl OpponentProfile {
             UNIFORM_COLUMN_FREQUENCY
         };
         
-        // Weight: favor columns where opponent places high dice
-        // HIGH_DICE_BONUS_SCALE controls how much we prioritize high-value targets
         let high_dice_bonus = (high_dice_ratio - UNIFORM_COLUMN_FREQUENCY) * HIGH_DICE_BONUS_SCALE;
         
-        // Combined bonus: COLUMN_PREFERENCE_SCALE controls impact of usage patterns
         preference_delta * COLUMN_PREFERENCE_SCALE + high_dice_bonus
     }
-    
 }
 
 /// Order moves considering both quick evaluation and profile-based bias.
-/// 
-/// Combines immediate move value with learned opponent patterns to prioritize
-/// moves that both score well and exploit opponent weaknesses.
 fn order_moves_with_profile(
     state: &GameState, 
     columns: &[usize], 
@@ -1111,7 +1272,6 @@ fn order_moves_with_profile(
             .map(|&col| {
                 let base_score = evaluate_move_quick(state, col, die_value, player);
                 let profile_bonus = profile.get_column_attack_bonus(col);
-                // PROFILE_BONUS_MULTIPLIER balances learned patterns vs immediate value
                 (col, base_score + profile_bonus * PROFILE_BONUS_MULTIPLIER)
             })
             .collect();
@@ -1119,5 +1279,939 @@ fn order_moves_with_profile(
         scored.into_iter().map(|(col, _)| col).collect()
     } else {
         columns.to_vec()
+    }
+}
+
+// ============================================================================
+// Neural Network for Policy/Value Prediction
+// ============================================================================
+
+/// State encoding size:
+/// - 36 features for each player's grid (6 possible die values × 3 columns × 2 for count encoding)
+/// - Actually: 3 cols × 3 rows × 7 (one-hot for 0-6) × 2 players = 126
+/// - Simplified: 18 (grid1) + 18 (grid2) + 1 (current player) + 6 (current die one-hot) = 43
+/// Using compact encoding: counts per face per column for both players
+/// 6 faces × 3 columns × 2 players = 36 + 1 (player) + 6 (die one-hot) = 43
+
+const STATE_ENCODING_SIZE: usize = 43;
+const HIDDEN_SIZE: usize = 128;  // Doubled from 64 for more capacity
+const POLICY_OUTPUT_SIZE: usize = 3;  // 3 columns
+
+/// Encode game state into feature vector
+fn encode_state(state: &GameState) -> [f64; STATE_ENCODING_SIZE] {
+    let mut features = [0.0f64; STATE_ENCODING_SIZE];
+    let mut idx = 0;
+    
+    // Encode grid1: counts per die value per column (6 × 3 = 18 features)
+    for col in 0..3 {
+        let mut counts = [0u8; 7]; // indices 1-6 used
+        for row in 0..3 {
+            let v = state.grid1.get(col, row);
+            if v > 0 && v <= 6 {
+                counts[v as usize] += 1;
+            }
+        }
+        for die in 1..=6 {
+            features[idx] = counts[die] as f64 / 3.0; // Normalize by max possible
+            idx += 1;
+        }
+    }
+    
+    // Encode grid2: same format (18 features)
+    for col in 0..3 {
+        let mut counts = [0u8; 7];
+        for row in 0..3 {
+            let v = state.grid2.get(col, row);
+            if v > 0 && v <= 6 {
+                counts[v as usize] += 1;
+            }
+        }
+        for die in 1..=6 {
+            features[idx] = counts[die] as f64 / 3.0;
+            idx += 1;
+        }
+    }
+    
+    // Current player (1 feature)
+    features[idx] = if state.current_player == Player::Player1 { 0.0 } else { 1.0 };
+    idx += 1;
+    
+    // Current die one-hot (6 features)
+    if let Some(die) = state.current_die {
+        if die >= 1 && die <= 6 {
+            features[idx + (die as usize - 1)] = 1.0;
+        }
+    }
+    
+    features
+}
+
+/// Simple MLP for policy and value prediction
+/// Architecture: input -> hidden (ReLU) -> policy head (softmax) + value head (tanh)
+#[wasm_bindgen]
+pub struct PolicyValueNetwork {
+    // Weights for input -> hidden layer
+    w1: Vec<f64>,  // HIDDEN_SIZE × STATE_ENCODING_SIZE
+    b1: Vec<f64>,  // HIDDEN_SIZE
+    
+    // Weights for hidden -> policy output
+    w_policy: Vec<f64>,  // POLICY_OUTPUT_SIZE × HIDDEN_SIZE
+    b_policy: Vec<f64>,  // POLICY_OUTPUT_SIZE
+    
+    // Weights for hidden -> value output
+    w_value: Vec<f64>,  // 1 × HIDDEN_SIZE
+    b_value: f64,
+    
+    // Whether weights have been loaded
+    initialized: bool,
+}
+
+#[wasm_bindgen]
+impl PolicyValueNetwork {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        // Initialize with small random weights (Xavier initialization)
+        let scale1 = (2.0 / (STATE_ENCODING_SIZE + HIDDEN_SIZE) as f64).sqrt();
+        let scale_policy = (2.0 / (HIDDEN_SIZE + POLICY_OUTPUT_SIZE) as f64).sqrt();
+        let scale_value = (2.0 / (HIDDEN_SIZE + 1) as f64).sqrt();
+        
+        let mut w1 = vec![0.0; HIDDEN_SIZE * STATE_ENCODING_SIZE];
+        let mut b1 = vec![0.0; HIDDEN_SIZE];
+        let mut w_policy = vec![0.0; POLICY_OUTPUT_SIZE * HIDDEN_SIZE];
+        let mut b_policy = vec![0.0; POLICY_OUTPUT_SIZE];
+        let mut w_value = vec![0.0; HIDDEN_SIZE];
+        
+        // Initialize with small random values
+        for i in 0..w1.len() {
+            w1[i] = (js_sys::Math::random() - 0.5) * 2.0 * scale1;
+        }
+        for i in 0..w_policy.len() {
+            w_policy[i] = (js_sys::Math::random() - 0.5) * 2.0 * scale_policy;
+        }
+        for i in 0..w_value.len() {
+            w_value[i] = (js_sys::Math::random() - 0.5) * 2.0 * scale_value;
+        }
+        
+        PolicyValueNetwork {
+            w1,
+            b1,
+            w_policy,
+            b_policy,
+            w_value,
+            b_value: 0.0,
+            initialized: false,
+        }
+    }
+    
+    /// Load weights from a flat array
+    /// Format: [w1..., b1..., w_policy..., b_policy..., w_value..., b_value]
+    #[wasm_bindgen]
+    pub fn load_weights(&mut self, weights: &[f64]) -> bool {
+        let expected_size = 
+            HIDDEN_SIZE * STATE_ENCODING_SIZE +  // w1
+            HIDDEN_SIZE +                         // b1
+            POLICY_OUTPUT_SIZE * HIDDEN_SIZE +    // w_policy
+            POLICY_OUTPUT_SIZE +                  // b_policy
+            HIDDEN_SIZE +                         // w_value
+            1;                                    // b_value
+        
+        if weights.len() != expected_size {
+            return false;
+        }
+        
+        let mut idx = 0;
+        
+        // Load w1
+        for i in 0..self.w1.len() {
+            self.w1[i] = weights[idx];
+            idx += 1;
+        }
+        
+        // Load b1
+        for i in 0..self.b1.len() {
+            self.b1[i] = weights[idx];
+            idx += 1;
+        }
+        
+        // Load w_policy
+        for i in 0..self.w_policy.len() {
+            self.w_policy[i] = weights[idx];
+            idx += 1;
+        }
+        
+        // Load b_policy
+        for i in 0..self.b_policy.len() {
+            self.b_policy[i] = weights[idx];
+            idx += 1;
+        }
+        
+        // Load w_value
+        for i in 0..self.w_value.len() {
+            self.w_value[i] = weights[idx];
+            idx += 1;
+        }
+        
+        // Load b_value
+        self.b_value = weights[idx];
+        
+        self.initialized = true;
+        true
+    }
+    
+    /// Check if network has been initialized with weights
+    #[wasm_bindgen]
+    pub fn is_initialized(&self) -> bool {
+        self.initialized
+    }
+    
+    /// Get the total number of weights in the network
+    #[wasm_bindgen]
+    pub fn get_weight_count(&self) -> usize {
+        HIDDEN_SIZE * STATE_ENCODING_SIZE +
+        HIDDEN_SIZE +
+        POLICY_OUTPUT_SIZE * HIDDEN_SIZE +
+        POLICY_OUTPUT_SIZE +
+        HIDDEN_SIZE +
+        1
+    }
+}
+
+impl PolicyValueNetwork {
+    /// Forward pass: returns (policy, value)
+    /// Policy is a probability distribution over 3 columns
+    /// Value is in range [-1, 1]
+    fn forward(&self, state: &GameState) -> ([f64; 3], f64) {
+        let input = encode_state(state);
+        
+        // Hidden layer with ReLU
+        let mut hidden = [0.0f64; HIDDEN_SIZE];
+        for i in 0..HIDDEN_SIZE {
+            let mut sum = self.b1[i];
+            for j in 0..STATE_ENCODING_SIZE {
+                sum += self.w1[i * STATE_ENCODING_SIZE + j] * input[j];
+            }
+            hidden[i] = sum.max(0.0); // ReLU
+        }
+        
+        // Policy head with softmax
+        let mut policy_logits = [0.0f64; POLICY_OUTPUT_SIZE];
+        for i in 0..POLICY_OUTPUT_SIZE {
+            let mut sum = self.b_policy[i];
+            for j in 0..HIDDEN_SIZE {
+                sum += self.w_policy[i * HIDDEN_SIZE + j] * hidden[j];
+            }
+            policy_logits[i] = sum;
+        }
+        
+        // Softmax
+        let max_logit = policy_logits.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let mut exp_sum = 0.0;
+        let mut policy = [0.0f64; POLICY_OUTPUT_SIZE];
+        for i in 0..POLICY_OUTPUT_SIZE {
+            policy[i] = (policy_logits[i] - max_logit).exp();
+            exp_sum += policy[i];
+        }
+        for i in 0..POLICY_OUTPUT_SIZE {
+            policy[i] /= exp_sum;
+        }
+        
+        // Value head with tanh
+        let mut value_sum = self.b_value;
+        for j in 0..HIDDEN_SIZE {
+            value_sum += self.w_value[j] * hidden[j];
+        }
+        let value = value_sum.tanh();
+        
+        (policy, value)
+    }
+    
+    /// Get policy for legal moves only (renormalized)
+    fn get_policy_for_legal(&self, state: &GameState, legal_cols: &[usize]) -> Vec<(usize, f64)> {
+        let (policy, _) = self.forward(state);
+        
+        // Collect policy for legal moves
+        let mut legal_probs: Vec<(usize, f64)> = legal_cols.iter()
+            .map(|&col| (col, policy[col]))
+            .collect();
+        
+        // Renormalize
+        let sum: f64 = legal_probs.iter().map(|(_, p)| p).sum();
+        if sum > 0.0 {
+            for (_, p) in &mut legal_probs {
+                *p /= sum;
+            }
+        } else {
+            // Uniform if sum is 0
+            let uniform = 1.0 / legal_probs.len() as f64;
+            for (_, p) in &mut legal_probs {
+                *p = uniform;
+            }
+        }
+        
+        legal_probs
+    }
+    
+    /// Get value estimate for a state
+    fn get_value(&self, state: &GameState) -> f64 {
+        let (_, value) = self.forward(state);
+        value
+    }
+}
+
+// ============================================================================
+// MCTS (Monte Carlo Tree Search) with PUCT
+// ============================================================================
+
+/// MCTS Configuration
+const MCTS_C_PUCT: f64 = 1.5;  // Exploration constant for PUCT
+const MCTS_DEFAULT_SIMULATIONS: u32 = 800;  // Default number of simulations
+
+/// MCTS Node representing a game state
+#[derive(Clone)]
+struct MCTSNode {
+    /// Number of times this node has been visited
+    visits: u32,
+    /// Total value accumulated from this node (from the perspective of the player who moved here)
+    total_value: f64,
+    /// Prior probability for this action (from policy network or uniform)
+    prior: f64,
+    /// Children keyed by action (column index 0-2)
+    children: HashMap<usize, MCTSNode>,
+    /// The player who is to move at this node
+    player_to_move: Player,
+    /// Whether this is a terminal state
+    is_terminal: bool,
+    /// Terminal value if is_terminal
+    terminal_value: f64,
+}
+
+impl MCTSNode {
+    fn new(prior: f64, player_to_move: Player) -> Self {
+        MCTSNode {
+            visits: 0,
+            total_value: 0.0,
+            prior,
+            children: HashMap::new(),
+            player_to_move,
+            is_terminal: false,
+            terminal_value: 0.0,
+        }
+    }
+    
+    fn new_terminal(value: f64) -> Self {
+        MCTSNode {
+            visits: 1,
+            total_value: value,
+            prior: 1.0,
+            children: HashMap::new(),
+            player_to_move: Player::Player1,
+            is_terminal: true,
+            terminal_value: value,
+        }
+    }
+    
+    /// Get the mean value of this node
+    fn mean_value(&self) -> f64 {
+        if self.visits == 0 {
+            0.0
+        } else {
+            self.total_value / self.visits as f64
+        }
+    }
+    
+    /// PUCT score for child selection
+    fn puct_score(&self, child: &MCTSNode, parent_visits: u32) -> f64 {
+        let q = child.mean_value();
+        let u = MCTS_C_PUCT * child.prior * (parent_visits as f64).sqrt() / (1.0 + child.visits as f64);
+        q + u
+    }
+    
+    /// Select the best child according to PUCT
+    fn select_child(&self) -> Option<usize> {
+        if self.children.is_empty() {
+            return None;
+        }
+        
+        let mut best_action = None;
+        let mut best_score = f64::NEG_INFINITY;
+        
+        for (&action, child) in &self.children {
+            let score = self.puct_score(child, self.visits);
+            if score > best_score {
+                best_score = score;
+                best_action = Some(action);
+            }
+        }
+        
+        best_action
+    }
+    
+    /// Select the best action based on visit counts (for final move selection)
+    fn best_action_by_visits(&self) -> Option<usize> {
+        if self.children.is_empty() {
+            return None;
+        }
+        
+        let mut best_action = None;
+        let mut best_visits = 0;
+        
+        for (&action, child) in &self.children {
+            if child.visits > best_visits {
+                best_visits = child.visits;
+                best_action = Some(action);
+            }
+        }
+        
+        best_action
+    }
+}
+
+/// MCTS Search Context
+struct MCTSContext {
+    /// Root node
+    root: MCTSNode,
+    /// Start time for time budget
+    start_time: f64,
+    /// Time budget in ms
+    time_budget_ms: f64,
+    /// Number of simulations run
+    simulations: u32,
+    /// Player we're optimizing for
+    root_player: Player,
+}
+
+impl MCTSContext {
+    fn new(player: Player, time_budget_ms: f64) -> Self {
+        MCTSContext {
+            root: MCTSNode::new(1.0, player),
+            start_time: js_sys::Date::now(),
+            time_budget_ms,
+            simulations: 0,
+            root_player: player,
+        }
+    }
+    
+    fn should_stop(&self) -> bool {
+        if self.time_budget_ms <= 0.0 {
+            return self.simulations >= MCTS_DEFAULT_SIMULATIONS;
+        }
+        let elapsed = js_sys::Date::now() - self.start_time;
+        elapsed >= self.time_budget_ms
+    }
+}
+
+/// Get legal columns for a state
+fn get_legal_columns(state: &GameState) -> Vec<usize> {
+    let grid = match state.current_player {
+        Player::Player1 => &state.grid1,
+        Player::Player2 => &state.grid2,
+    };
+    
+    (0..3).filter(|&col| !grid.is_column_full(col)).collect()
+}
+
+/// Get uniform prior for legal actions
+fn get_uniform_prior(num_legal: usize) -> f64 {
+    if num_legal == 0 {
+        0.0
+    } else {
+        1.0 / num_legal as f64
+    }
+}
+
+/// Evaluate a state from a player's perspective (normalized to [-1, 1])
+fn evaluate_normalized(state: &GameState, player: Player) -> f64 {
+    let config = DifficultyConfig {
+        depth: 0,
+        randomness: 0.0,
+        offense_weight: 0.5,
+        defense_weight: 0.5,
+        advanced_eval: true,
+        adversarial: true,
+        time_budget_ms: 0.0,
+    };
+    
+    let raw_eval = evaluate_advanced(state, player, &config);
+    
+    // Handle terminal states
+    if raw_eval >= 10000.0 {
+        return 1.0;
+    } else if raw_eval <= -10000.0 {
+        return -1.0;
+    }
+    
+    // Normalize to roughly [-1, 1] range
+    // Typical score differences are in range [-200, 200]
+    (raw_eval / 200.0).clamp(-1.0, 1.0)
+}
+
+/// Expand a node by adding children for all legal actions
+fn mcts_expand(node: &mut MCTSNode, state: &GameState) {
+    if state.phase == GamePhase::Ended {
+        return;
+    }
+    
+    let legal_columns = get_legal_columns(state);
+    if legal_columns.is_empty() {
+        return;
+    }
+    
+    let prior = get_uniform_prior(legal_columns.len());
+    
+    for col in legal_columns {
+        if !node.children.contains_key(&col) {
+            // Determine the player who will move after this action
+            let next_player = match state.current_player {
+                Player::Player1 => Player::Player2,
+                Player::Player2 => Player::Player1,
+            };
+            node.children.insert(col, MCTSNode::new(prior, next_player));
+        }
+    }
+}
+
+/// Simulate a game from a state to get a value
+fn mcts_simulate(state: &GameState, player: Player) -> f64 {
+    // Use evaluation function as a quick rollout replacement
+    evaluate_normalized(state, player)
+}
+
+/// Run one MCTS iteration (selection, expansion, simulation, backpropagation)
+fn mcts_iterate(
+    node: &mut MCTSNode,
+    state: &GameState,
+    root_player: Player,
+) -> f64 {
+    node.visits += 1;
+    
+    // Terminal state
+    if state.phase == GamePhase::Ended {
+        let value = evaluate_normalized(state, root_player);
+        node.is_terminal = true;
+        node.terminal_value = value;
+        node.total_value += value;
+        return value;
+    }
+    
+    // Handle chance nodes (rolling phase) - sample a die
+    if state.phase == GamePhase::Rolling {
+        // Sample a random die value
+        let die_value = (js_sys::Math::random() * 6.0) as u8 + 1;
+        let rolled_state = roll_die(state, die_value);
+        let value = mcts_iterate(node, &rolled_state, root_player);
+        node.total_value += value;
+        return value;
+    }
+    
+    // Expand if not expanded
+    if node.children.is_empty() {
+        mcts_expand(node, state);
+        
+        // If still no children, this is a terminal-like state
+        if node.children.is_empty() {
+            let value = evaluate_normalized(state, root_player);
+            node.total_value += value;
+            return value;
+        }
+        
+        // Select one child for rollout
+        if let Some(action) = node.select_child() {
+            if let Some(new_state) = apply_move(state, action) {
+                let value = mcts_simulate(&new_state, root_player);
+                if let Some(child) = node.children.get_mut(&action) {
+                    child.visits += 1;
+                    child.total_value += value;
+                }
+                node.total_value += value;
+                return value;
+            }
+        }
+        
+        let value = evaluate_normalized(state, root_player);
+        node.total_value += value;
+        return value;
+    }
+    
+    // Selection - pick best child via PUCT
+    if let Some(action) = node.select_child() {
+        if let Some(new_state) = apply_move(state, action) {
+            // Recursively iterate
+            if let Some(child) = node.children.get_mut(&action) {
+                let value = mcts_iterate(child, &new_state, root_player);
+                node.total_value += value;
+                return value;
+            }
+        }
+    }
+    
+    // Fallback
+    let value = evaluate_normalized(state, root_player);
+    node.total_value += value;
+    value
+}
+
+/// Run MCTS search and return the best action
+fn mcts_search(state: &GameState, time_budget_ms: f64) -> Option<usize> {
+    if state.phase != GamePhase::Placing || state.current_die.is_none() {
+        return None;
+    }
+    
+    let player = state.current_player;
+    let legal_columns = get_legal_columns(state);
+    
+    if legal_columns.is_empty() {
+        return None;
+    }
+    
+    if legal_columns.len() == 1 {
+        return Some(legal_columns[0]);
+    }
+    
+    let mut ctx = MCTSContext::new(player, time_budget_ms);
+    
+    // Expand root
+    mcts_expand(&mut ctx.root, state);
+    
+    // Run simulations until time budget is exhausted
+    while !ctx.should_stop() {
+        mcts_iterate(&mut ctx.root, state, player);
+        ctx.simulations += 1;
+    }
+    
+    // Select best action by visit count
+    ctx.root.best_action_by_visits()
+}
+
+// Add MCTS method to AIEngine
+#[wasm_bindgen]
+impl AIEngine {
+    /// Get the best move using MCTS (Monte Carlo Tree Search)
+    #[wasm_bindgen]
+    pub fn get_mcts_move(
+        &mut self,
+        grid1: &[u8],
+        grid2: &[u8],
+        current_player: u8,
+        current_die: u8,
+        time_budget_ms: f64,
+    ) -> i32 {
+        // Convert from JS arrays to GameState
+        let mut state = GameState {
+            grid1: Grid { data: [0; 9] },
+            grid2: Grid { data: [0; 9] },
+            current_player: if current_player == 0 { Player::Player1 } else { Player::Player2 },
+            current_die: if current_die == 0 { None } else { Some(current_die) },
+            phase: if current_die == 0 { GamePhase::Rolling } else { GamePhase::Placing },
+            turn_number: 1,
+        };
+        
+        // Copy grid data
+        let len1 = grid1.len().min(9);
+        for i in 0..len1 {
+            state.grid1.data[i] = grid1[i];
+        }
+        for i in len1..9 {
+            state.grid1.data[i] = 0;
+        }
+        let len2 = grid2.len().min(9);
+        for i in 0..len2 {
+            state.grid2.data[i] = grid2[i];
+        }
+        for i in len2..9 {
+            state.grid2.data[i] = 0;
+        }
+        
+        if state.phase != GamePhase::Placing || state.current_die.is_none() {
+            return -1;
+        }
+        
+        match mcts_search(&state, time_budget_ms) {
+            Some(col) => col as i32,
+            None => -1,
+        }
+    }
+    
+    /// Get the best move using hybrid approach: MCTS with neural network priors
+    /// For now, uses uniform priors until policy network is trained
+    #[wasm_bindgen]
+    pub fn get_hybrid_move(
+        &mut self,
+        grid1: &[u8],
+        grid2: &[u8],
+        current_player: u8,
+        current_die: u8,
+        time_budget_ms: f64,
+        policy_weights: Option<Vec<f64>>,
+    ) -> i32 {
+        // For now, just use MCTS with uniform priors
+        // Policy weights will be used when we have a trained model
+        let _ = policy_weights;
+        self.get_mcts_move(grid1, grid2, current_player, current_die, time_budget_ms)
+    }
+}
+
+// ============================================================================
+// Neural Network-Guided MCTS
+// ============================================================================
+
+/// Expand a node using neural network policy priors
+fn mcts_expand_with_nn(node: &mut MCTSNode, state: &GameState, network: &PolicyValueNetwork) {
+    if state.phase == GamePhase::Ended {
+        return;
+    }
+    
+    let legal_columns = get_legal_columns(state);
+    if legal_columns.is_empty() {
+        return;
+    }
+    
+    // Get policy priors from network
+    let policy_probs = network.get_policy_for_legal(state, &legal_columns);
+    
+    for (col, prior) in policy_probs {
+        if !node.children.contains_key(&col) {
+            let next_player = match state.current_player {
+                Player::Player1 => Player::Player2,
+                Player::Player2 => Player::Player1,
+            };
+            node.children.insert(col, MCTSNode::new(prior, next_player));
+        }
+    }
+}
+
+/// Run one MCTS iteration with neural network guidance
+fn mcts_iterate_with_nn(
+    node: &mut MCTSNode,
+    state: &GameState,
+    root_player: Player,
+    network: &PolicyValueNetwork,
+) -> f64 {
+    node.visits += 1;
+    
+    // Terminal state
+    if state.phase == GamePhase::Ended {
+        let value = evaluate_normalized(state, root_player);
+        node.is_terminal = true;
+        node.terminal_value = value;
+        node.total_value += value;
+        return value;
+    }
+    
+    // Handle chance nodes (rolling phase) - sample a die
+    if state.phase == GamePhase::Rolling {
+        let die_value = (js_sys::Math::random() * 6.0) as u8 + 1;
+        let rolled_state = roll_die(state, die_value);
+        let value = mcts_iterate_with_nn(node, &rolled_state, root_player, network);
+        node.total_value += value;
+        return value;
+    }
+    
+    // Expand if not expanded
+    if node.children.is_empty() {
+        mcts_expand_with_nn(node, state, network);
+        
+        if node.children.is_empty() {
+            let value = network.get_value(state);
+            // Convert to root player's perspective
+            let adjusted_value = if state.current_player == root_player {
+                value
+            } else {
+                -value
+            };
+            node.total_value += adjusted_value;
+            return adjusted_value;
+        }
+        
+        // Use network value instead of rollout
+        let value = network.get_value(state);
+        let adjusted_value = if state.current_player == root_player {
+            value
+        } else {
+            -value
+        };
+        
+        // Still need to propagate to children
+        if let Some(action) = node.select_child() {
+            if let Some(child) = node.children.get_mut(&action) {
+                child.visits += 1;
+                child.total_value += adjusted_value;
+            }
+        }
+        
+        node.total_value += adjusted_value;
+        return adjusted_value;
+    }
+    
+    // Selection - pick best child via PUCT
+    if let Some(action) = node.select_child() {
+        if let Some(new_state) = apply_move(state, action) {
+            if let Some(child) = node.children.get_mut(&action) {
+                let value = mcts_iterate_with_nn(child, &new_state, root_player, network);
+                node.total_value += value;
+                return value;
+            }
+        }
+    }
+    
+    // Fallback
+    let value = network.get_value(state);
+    let adjusted_value = if state.current_player == root_player {
+        value
+    } else {
+        -value
+    };
+    node.total_value += adjusted_value;
+    adjusted_value
+}
+
+/// Run neural network-guided MCTS search
+fn mcts_search_with_nn(
+    state: &GameState, 
+    time_budget_ms: f64,
+    network: &PolicyValueNetwork,
+) -> Option<usize> {
+    if state.phase != GamePhase::Placing || state.current_die.is_none() {
+        return None;
+    }
+    
+    let player = state.current_player;
+    let legal_columns = get_legal_columns(state);
+    
+    if legal_columns.is_empty() {
+        return None;
+    }
+    
+    if legal_columns.len() == 1 {
+        return Some(legal_columns[0]);
+    }
+    
+    let mut ctx = MCTSContext::new(player, time_budget_ms);
+    
+    // Expand root with network priors
+    mcts_expand_with_nn(&mut ctx.root, state, network);
+    
+    // Run simulations
+    while !ctx.should_stop() {
+        mcts_iterate_with_nn(&mut ctx.root, state, player, network);
+        ctx.simulations += 1;
+    }
+    
+    ctx.root.best_action_by_visits()
+}
+
+/// Hybrid AI Engine that combines MCTS with neural network
+#[wasm_bindgen]
+pub struct HybridAIEngine {
+    network: PolicyValueNetwork,
+}
+
+#[wasm_bindgen]
+impl HybridAIEngine {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        HybridAIEngine {
+            network: PolicyValueNetwork::new(),
+        }
+    }
+    
+    /// Load weights into the neural network
+    #[wasm_bindgen]
+    pub fn load_weights(&mut self, weights: &[f64]) -> bool {
+        self.network.load_weights(weights)
+    }
+    
+    /// Check if the network is initialized
+    #[wasm_bindgen]
+    pub fn is_network_initialized(&self) -> bool {
+        self.network.is_initialized()
+    }
+    
+    /// Get the weight count for the network
+    #[wasm_bindgen]
+    pub fn get_weight_count(&self) -> usize {
+        self.network.get_weight_count()
+    }
+    
+    /// Get the best move using neural network-guided MCTS
+    #[wasm_bindgen]
+    pub fn get_move(
+        &self,
+        grid1: &[u8],
+        grid2: &[u8],
+        current_player: u8,
+        current_die: u8,
+        time_budget_ms: f64,
+    ) -> i32 {
+        let mut state = GameState {
+            grid1: Grid { data: [0; 9] },
+            grid2: Grid { data: [0; 9] },
+            current_player: if current_player == 0 { Player::Player1 } else { Player::Player2 },
+            current_die: if current_die == 0 { None } else { Some(current_die) },
+            phase: if current_die == 0 { GamePhase::Rolling } else { GamePhase::Placing },
+            turn_number: 1,
+        };
+        
+        let len1 = grid1.len().min(9);
+        for i in 0..len1 {
+            state.grid1.data[i] = grid1[i];
+        }
+        for i in len1..9 {
+            state.grid1.data[i] = 0;
+        }
+        let len2 = grid2.len().min(9);
+        for i in 0..len2 {
+            state.grid2.data[i] = grid2[i];
+        }
+        for i in len2..9 {
+            state.grid2.data[i] = 0;
+        }
+        
+        if state.phase != GamePhase::Placing || state.current_die.is_none() {
+            return -1;
+        }
+        
+        match mcts_search_with_nn(&state, time_budget_ms, &self.network) {
+            Some(col) => col as i32,
+            None => -1,
+        }
+    }
+    
+    /// Get policy and value outputs for a state (for debugging/analysis)
+    #[wasm_bindgen]
+    pub fn get_policy_value(
+        &self,
+        grid1: &[u8],
+        grid2: &[u8],
+        current_player: u8,
+        current_die: u8,
+    ) -> Vec<f64> {
+        let mut state = GameState {
+            grid1: Grid { data: [0; 9] },
+            grid2: Grid { data: [0; 9] },
+            current_player: if current_player == 0 { Player::Player1 } else { Player::Player2 },
+            current_die: if current_die == 0 { None } else { Some(current_die) },
+            phase: if current_die == 0 { GamePhase::Rolling } else { GamePhase::Placing },
+            turn_number: 1,
+        };
+        
+        let len1 = grid1.len().min(9);
+        for i in 0..len1 {
+            state.grid1.data[i] = grid1[i];
+        }
+        for i in len1..9 {
+            state.grid1.data[i] = 0;
+        }
+        let len2 = grid2.len().min(9);
+        for i in 0..len2 {
+            state.grid2.data[i] = grid2[i];
+        }
+        for i in len2..9 {
+            state.grid2.data[i] = 0;
+        }
+        
+        let (policy, value) = self.network.forward(&state);
+        
+        // Return [policy[0], policy[1], policy[2], value]
+        vec![policy[0], policy[1], policy[2], value]
     }
 }

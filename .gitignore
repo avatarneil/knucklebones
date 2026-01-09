@@ -77,3 +77,9 @@ wasm/target/
 
 # Rust build scripts output
 **/build.rs.out
+
+# Python cache
+**/__pycache__/
+
+# Wandb
+**/wandb/
