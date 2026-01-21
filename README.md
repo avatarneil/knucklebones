@@ -1,8 +1,20 @@
 # KnuckleTrainer
 
-Master Knucklebones - the dice game from Cult of the Lamb. Train against AI opponents with 5 difficulty levels and win probability analysis.
+Master Knucklebones - the dice game from Cult of the Lamb. Train against AI opponents with 8 difficulty levels and win probability analysis.
 
 **Play at [knuckletrainer.com](https://knuckletrainer.com)**
+
+## AI System
+
+The game features a sophisticated multi-strategy AI system including:
+
+- **Neural Network**: Policy-value network trained via self-play (PyTorch)
+- **Expectimax Search**: Minimax with chance nodes for dice games
+- **Monte Carlo Tree Search (MCTS)**: For move evaluation and training
+- **Adaptive Learning**: Master AI that learns opponent patterns
+- **Hybrid Neural MCTS**: Combines neural network with MCTS search
+
+For detailed documentation of all AI/ML strategies, see [docs/AI_STRATEGIES.md](docs/AI_STRATEGIES.md).
 
 ## License
 
