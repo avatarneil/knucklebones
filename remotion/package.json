@@ -1,0 +1,23 @@
+{
+  "name": "knuckletrainer-video",
+  "version": "1.0.0",
+  "description": "Promotional video for KnuckleTrainer",
+  "scripts": {
+    "start": "remotion studio",
+    "build": "remotion render ShowcaseVideo out/showcase.mp4",
+    "build:gif": "remotion render ShowcaseVideo out/showcase.gif"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "@remotion/google-fonts": "^4.0.0",
+    "@remotion/transitions": "^4.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.5.0"
+  }
+}
