@@ -83,3 +83,10 @@ wasm/target/
 
 # Wandb
 **/wandb/
+
+# Remotion
+remotion/node_modules/
+remotion/out/
+remotion/public/*.mp3
+remotion/public/*.wav
+remotion/public/*.m4a
