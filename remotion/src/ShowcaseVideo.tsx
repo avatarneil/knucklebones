@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  AbsoluteFill,
   Audio,
   interpolate,
   staticFile,
@@ -11,7 +12,7 @@ import {
   linearTiming,
 } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
-import { slide } from "@remotion/transitions/slide";
+import { theme } from "./theme";
 
 import { IntroScene } from "./components/IntroScene";
 import { FeaturesScene } from "./components/FeaturesScene";
@@ -61,6 +62,8 @@ export const ShowcaseVideo: React.FC = () => {
 
   return (
     <>
+      {/* Background fill to prevent flicker during transitions */}
+      <AbsoluteFill style={{ backgroundColor: theme.background }} />
       <Audio src={staticFile("music.mp3")} volume={volume} />
       <TransitionSeries>
       {/* === INTRO === */}
@@ -79,7 +82,7 @@ export const ShowcaseVideo: React.FC = () => {
       </TransitionSeries.Sequence>
 
       <TransitionSeries.Transition
-        presentation={slide({ direction: "from-right" })}
+        presentation={fade()}
         timing={linearTiming({ durationInFrames: transitionDuration })}
       />
 
@@ -101,7 +104,7 @@ export const ShowcaseVideo: React.FC = () => {
       </TransitionSeries.Sequence>
 
       <TransitionSeries.Transition
-        presentation={slide({ direction: "from-left" })}
+        presentation={fade()}
         timing={linearTiming({ durationInFrames: transitionDuration })}
       />
 
@@ -121,7 +124,7 @@ export const ShowcaseVideo: React.FC = () => {
       </TransitionSeries.Sequence>
 
       <TransitionSeries.Transition
-        presentation={slide({ direction: "from-right" })}
+        presentation={fade()}
         timing={linearTiming({ durationInFrames: transitionDuration })}
       />
 
@@ -141,7 +144,7 @@ export const ShowcaseVideo: React.FC = () => {
       </TransitionSeries.Sequence>
 
       <TransitionSeries.Transition
-        presentation={slide({ direction: "from-left" })}
+        presentation={fade()}
         timing={linearTiming({ durationInFrames: transitionDuration })}
       />
 
@@ -163,7 +166,7 @@ export const ShowcaseVideo: React.FC = () => {
       </TransitionSeries.Sequence>
 
       <TransitionSeries.Transition
-        presentation={slide({ direction: "from-bottom" })}
+        presentation={fade()}
         timing={linearTiming({ durationInFrames: transitionDuration })}
       />
 
