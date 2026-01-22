@@ -83,3 +83,7 @@ wasm/target/
 
 # Wandb
 **/wandb/
+
+# Remotion
+remotion/node_modules/
+remotion/out/
